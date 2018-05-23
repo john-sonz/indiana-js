@@ -71,6 +71,61 @@
 /************************************************************************/
 /******/ ({
 
+/***/ "./src/js/Camera.js":
+/*!**************************!*\
+  !*** ./src/js/Camera.js ***!
+  \**************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _math = __webpack_require__(/*! ./math */ "./src/js/math.js");
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Camera = function () {
+    function Camera() {
+        _classCallCheck(this, Camera);
+
+        this.pos = new _math.Vec2(0, 0);
+        this.size = new _math.Vec2(2115 - 640, 709 - 200);
+    }
+
+    _createClass(Camera, [{
+        key: "focus",
+        value: function focus(pos, dir) {
+            if (dir.x > 0) {
+                if (pos.x - this.pos.x >= 400) this.pos.x = pos.x - 400;
+            } else if (dir.x < 0) {
+                if (pos.x - this.pos.x <= 200) this.pos.x = pos.x - 200;
+            }
+            this.pos.y = pos.y - 50;
+        }
+    }, {
+        key: "check",
+        value: function check() {
+            if (this.pos.x > this.size.x) this.pos.x = this.size.x;
+            if (this.pos.y > this.size.y) this.pos.y = this.size.y;
+            if (this.pos.x < 0) this.pos.x = 0;
+            if (this.pos.y < 0) this.pos.y = 0;
+        }
+    }]);
+
+    return Camera;
+}();
+
+exports.default = Camera;
+
+/***/ }),
+
 /***/ "./src/js/Entity.js":
 /*!**************************!*\
   !*** ./src/js/Entity.js ***!
@@ -118,6 +173,12 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 var _entities = __webpack_require__(/*! ./entities.js */ "./src/js/entities.js");
 
+var _Camera = __webpack_require__(/*! ./Camera.js */ "./src/js/Camera.js");
+
+var _Camera2 = _interopRequireDefault(_Camera);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var Game = function () {
@@ -126,16 +187,19 @@ var Game = function () {
 
         var indie = (0, _entities.createIndie)(spriteSheet);
         var gravity = 0.3;
+        var camera = new _Camera2.default();
+        camera.pos.set(0, 270);
         this.play = function (images, ctx, canvas) {
             var this_ = this;
-            indie.vel.x = 3;
-            indie.vel.y = -5;
+            indie.vel.set(0, 0);
+
             function render() {
-                ctx.drawImage(images.bg, 0, 270, 320, 200, 0, 0, canvas.width, 250);
+                ctx.fillStyle = "black";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(images.bg, camera.pos.x, camera.pos.y, 320, 200, 0, 0, canvas.width, 250);
                 ctx.drawImage(images.score, 10, 260, 620, 130);
                 indie.update();
-                indie.vel.y += gravity;
-                indie.draw(ctx);
+                indie.draw(ctx, camera);
                 requestAnimationFrame(render);
             }
             render();
@@ -153,6 +217,66 @@ var Game = function () {
 }();
 
 exports.default = Game;
+
+/***/ }),
+
+/***/ "./src/js/Keyboard.js":
+/*!****************************!*\
+  !*** ./src/js/Keyboard.js ***!
+  \****************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Keyboard = function () {
+    function Keyboard() {
+        _classCallCheck(this, Keyboard);
+
+        this.keyStates = new Map();
+    }
+
+    _createClass(Keyboard, [{
+        key: 'handleEvent',
+        value: function handleEvent(e) {
+            var key = e.code;
+            if (!this.keyStates.has(key)) {
+                return;
+            }
+            e.preventDefault();
+            var keyState = e.type === 'keydown' ? 1 : 0;
+            if (this.keyStates.get(key) === keyState) return;
+            this.keyStates.set(key, keyState);
+        }
+    }, {
+        key: 'listenTo',
+        value: function listenTo(window) {
+            var _this = this;
+
+            ['keydown', 'keyup'].forEach(function (eName) {
+                window.addEventListener(eName, function (e) {
+                    _this.handleEvent(e);
+                });
+            });
+            ["KeyA", "KeyW", "KeyD", "KeyS"].forEach(function (key) {
+                return _this.keyStates.set(key, 0);
+            });
+        }
+    }]);
+
+    return Keyboard;
+}();
+
+exports.default = Keyboard;
 
 /***/ }),
 
@@ -231,22 +355,36 @@ var _SpriteSet = __webpack_require__(/*! ./SpriteSet.js */ "./src/js/SpriteSet.j
 
 var _SpriteSet2 = _interopRequireDefault(_SpriteSet);
 
+var _Keyboard = __webpack_require__(/*! ./Keyboard.js */ "./src/js/Keyboard.js");
+
+var _Keyboard2 = _interopRequireDefault(_Keyboard);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function createIndie(image) {
     var indie = new _Entity2.default();
-    indie.pos.set(50, 50);
+    indie.pos.set(50, 320);
+    indie.speed = 2;
     var sprites = new _SpriteSet2.default(image, 30, 50);
     sprites.define("idle", 0, 0, 30, 50);
-
+    var input = new _Keyboard2.default();
+    input.listenTo(window);
     indie.update = function () {
+        this.vel.x = (-input.keyStates.get("KeyA") + input.keyStates.get("KeyD")) * this.speed;
+        this.vel.y = (-input.keyStates.get("KeyW") + input.keyStates.get("KeyS")) * this.speed;
+
         this.pos.x += this.vel.x;
         this.pos.y += this.vel.y;
     };
-    indie.draw = function (ctx) {
-        sprites.draw("idle", ctx, this.pos.x, this.pos.y);
+    indie.draw = function (ctx, camera) {
+        camera.focus(this.pos, {
+            x: parseInt(this.vel.x / this.speed),
+            y: parseInt(this.vel.y / this.speed)
+        });
+        camera.check();
+        sprites.draw("idle", ctx, this.pos.x - camera.pos.x, this.pos.y - camera.pos.y);
+        console.log(camera.pos);
     };
-    console.log(indie);
     return indie;
 }
 
