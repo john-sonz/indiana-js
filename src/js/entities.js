@@ -9,14 +9,22 @@ export function createIndie(image) {
     sprites.define("idle", 0, 0, 30, 50);
     const input = new Keyboard();
     input.listenTo(window);
+    const gravity = 1;    
     indie.update = function () {
         this.vel.x = (-input.keyStates.get("KeyA") + input.keyStates.get("KeyD")) * this.speed;
         this.vel.y = (-input.keyStates.get("KeyW") + input.keyStates.get("KeyS")) * this.speed;
-
+        this.vel.y += gravity;
         this.pos.x += this.vel.x;
         this.pos.y += this.vel.y;
+        
+        if(this.pos.x < 0) this.pos.x = 0;
+        if(this.pos.y < 0) this.pos.y = 0;
+        if(this.pos.x > 2115 - 30) this.pos.x = 2115 - 30;
+        if(this.pos.y > 709) this.pos.y = 709;
+        
     }
     indie.draw = function (ctx, camera) {
+        console.log(this.vel);
         camera.focus(this.pos, {
             x: parseInt(this.vel.x / this.speed),
             y: parseInt(this.vel.y / this.speed)
