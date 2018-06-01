@@ -4,7 +4,7 @@ import {
 import Game from "./Game.js"
 import SpriteSet from "./SpriteSet.js";
 
-const IMAGES = ["logo.png", "mapa.png", "sprites.png", "scoreboard.jpg"];
+const IMAGES = ["logo.png", "mapa.png", "sprites.png", "scoreboard.jpg", "collision1-1.png"];
 
 document.addEventListener("DOMContentLoaded", function () {
     const canvas = document.getElementById("screen");
@@ -15,7 +15,7 @@ document.addEventListener("DOMContentLoaded", function () {
     IMAGES.forEach(url => {
         imgs.push(loadImage(url));
     });
-    Promise.all(imgs).then(([logo, map, spriteSheet, scoreboard]) => {
+    Promise.all(imgs).then(([logo, map, spriteSheet, scoreboard, coll]) => {
         ctx.drawImage(logo, 120, 30, 400, 126);
         ctx.font = "40px Cousine, monospace";
         ctx.textAlign = "center";
@@ -41,7 +41,7 @@ document.addEventListener("DOMContentLoaded", function () {
         let ts = requestAnimationFrame(startScreen);
         const game = new Game(spriteSheet);
         const gameImgs = {
-            bg: map,
+            bg: coll,
             score: scoreboard
         }
         

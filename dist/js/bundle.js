@@ -96,18 +96,18 @@ var Camera = function () {
         _classCallCheck(this, Camera);
 
         this.pos = new _math.Vec2(0, 0);
-        this.size = new _math.Vec2(2115 - 640, 709 - 200);
+        this.size = new _math.Vec2(2115 - 320, 709 - 125);
     }
 
     _createClass(Camera, [{
         key: "focus",
         value: function focus(pos, dir) {
             if (dir.x > 0) {
-                if (pos.x - this.pos.x >= 400) this.pos.x = pos.x - 400;
+                if (pos.x - this.pos.x >= 200) this.pos.x = pos.x - 200;
             } else if (dir.x < 0) {
-                if (pos.x - this.pos.x <= 200) this.pos.x = pos.x - 200;
+                if (pos.x - this.pos.x <= 100) this.pos.x = pos.x - 100;
             }
-            this.pos.y = pos.y - 50;
+            this.pos.y = pos.y - 25;
         }
     }, {
         key: "check",
@@ -123,6 +123,121 @@ var Camera = function () {
 }();
 
 exports.default = Camera;
+
+/***/ }),
+
+/***/ "./src/js/Collider.js":
+/*!****************************!*\
+  !*** ./src/js/Collider.js ***!
+  \****************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Collider = function () {
+    function Collider(imgsrc) {
+        _classCallCheck(this, Collider);
+
+        this.collisionMap = document.createElement("canvas");
+        var img = new Image();
+        img.src = "images/" + imgsrc;
+        this.collisionMap.width = img.width;
+        this.collisionMap.height = img.height;
+        console.log(this.collisionMap.width, this.collisionMap.height);
+        this.collisionMap.getContext("2d").drawImage(img, 0, 0, this.collisionMap.width, this.collisionMap.height);
+        this.context = this.collisionMap.getContext("2d");
+    }
+
+    _createClass(Collider, [{
+        key: "check",
+        value: function check(positions) {
+            var vert = false;
+            var hori = false;
+            var _iteratorNormalCompletion = true;
+            var _didIteratorError = false;
+            var _iteratorError = undefined;
+
+            try {
+                for (var _iterator = positions.y[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+                    var pos = _step.value;
+
+                    var p = this.context.getImageData(pos.x, pos.y, 1, 1).data;
+                    var color = p[0] + " " + p[1] + " " + p[2] + " " + p[3];
+                    if (color === "0 0 0 255") {
+                        vert = true;
+                        break;
+                    }
+                    if (color === "237 119 15 255") {
+                        vert = true;
+                        break;
+                    }
+                }
+            } catch (err) {
+                _didIteratorError = true;
+                _iteratorError = err;
+            } finally {
+                try {
+                    if (!_iteratorNormalCompletion && _iterator.return) {
+                        _iterator.return();
+                    }
+                } finally {
+                    if (_didIteratorError) {
+                        throw _iteratorError;
+                    }
+                }
+            }
+
+            var _iteratorNormalCompletion2 = true;
+            var _didIteratorError2 = false;
+            var _iteratorError2 = undefined;
+
+            try {
+                for (var _iterator2 = positions.x[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+                    var _pos = _step2.value;
+
+                    var p = this.context.getImageData(_pos.x, _pos.y, 1, 1).data;
+                    var color = p[0] + " " + p[1] + " " + p[2] + " " + p[3];
+                    if (color === "0 0 0 255") {
+                        hori = true;
+                        break;
+                    }
+                }
+            } catch (err) {
+                _didIteratorError2 = true;
+                _iteratorError2 = err;
+            } finally {
+                try {
+                    if (!_iteratorNormalCompletion2 && _iterator2.return) {
+                        _iterator2.return();
+                    }
+                } finally {
+                    if (_didIteratorError2) {
+                        throw _iteratorError2;
+                    }
+                }
+            }
+
+            return {
+                x: hori,
+                y: vert
+            };
+        }
+    }]);
+
+    return Collider;
+}();
+
+exports.default = Collider;
 
 /***/ }),
 
@@ -177,6 +292,10 @@ var _Camera = __webpack_require__(/*! ./Camera.js */ "./src/js/Camera.js");
 
 var _Camera2 = _interopRequireDefault(_Camera);
 
+var _Collider = __webpack_require__(/*! ./Collider.js */ "./src/js/Collider.js");
+
+var _Collider2 = _interopRequireDefault(_Collider);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -188,17 +307,20 @@ var Game = function () {
         var indie = (0, _entities.createIndie)(spriteSheet);
         var gravity = 0.3;
         var camera = new _Camera2.default();
-        camera.pos.set(0, 270);
+        var collider = new _Collider2.default("collision1-1.png");
         this.play = function (images, ctx, canvas) {
             var this_ = this;
             indie.vel.set(0, 0);
 
             function render() {
-                ctx.fillStyle = "black";
+                ctx.fillStyle = "green";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(images.bg, camera.pos.x, camera.pos.y, 320, 200, 0, 0, canvas.width, 250);
+
+                ctx.drawImage(images.bg, camera.pos.x, camera.pos.y, 320, 125, 0, 0, 640, 250);
+
                 ctx.drawImage(images.score, 10, 260, 620, 130);
-                indie.update();
+
+                indie.update(collider);
                 indie.draw(ctx, camera);
                 requestAnimationFrame(render);
             }
@@ -359,38 +481,59 @@ var _Keyboard = __webpack_require__(/*! ./Keyboard.js */ "./src/js/Keyboard.js")
 
 var _Keyboard2 = _interopRequireDefault(_Keyboard);
 
+var _math = __webpack_require__(/*! ./math */ "./src/js/math.js");
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
 function createIndie(image) {
     var indie = new _Entity2.default();
-    indie.pos.set(50, 320);
+    indie.pos.set(50, 330);
     indie.speed = 2;
+    indie.size = new _math.Vec2(15, 25);
     var sprites = new _SpriteSet2.default(image, 30, 50);
     sprites.define("idle", 0, 0, 30, 50);
     var input = new _Keyboard2.default();
     input.listenTo(window);
-    var gravity = 1;
-    indie.update = function () {
+    var gravity = 3;
+    indie.getCollisionPoints = function () {
+        return {
+            y: [new _math.Vec2(this.pos.x + this.size.x / 6 * 5, this.pos.y + this.size.y), new _math.Vec2(this.pos.x + this.size.x / 6, this.pos.y + this.size.y), new _math.Vec2(this.pos.x + this.size.x / 6 * 5, this.pos.y), new _math.Vec2(this.pos.x + this.size.x / 6, this.pos.y)],
+            x: [new _math.Vec2(this.pos.x, this.pos.y + this.size.y / 6 * 5), new _math.Vec2(this.pos.x, this.pos.y + this.size.y / 6), new _math.Vec2(this.pos.x + this.size.x, this.pos.y + this.size.y / 6 * 5), new _math.Vec2(this.pos.x + this.size.x, this.pos.y + this.size.y / 6)]
+        };
+    };
+    indie.update = function (collider) {
         this.vel.x = (-input.keyStates.get("KeyA") + input.keyStates.get("KeyD")) * this.speed;
-        this.vel.y = (-input.keyStates.get("KeyW") + input.keyStates.get("KeyS")) * this.speed;
-        this.vel.y += gravity;
+        this.vel.y = (-input.keyStates.get("KeyW") + input.keyStates.get("KeyS")) * 5;
+        this.vel.y += 0.5;
         this.pos.x += this.vel.x;
         this.pos.y += this.vel.y;
-
         if (this.pos.x < 0) this.pos.x = 0;
-        if (this.pos.y < 0) this.pos.y = 0;
-        if (this.pos.x > 2115 - 30) this.pos.x = 2115 - 30;
-        if (this.pos.y > 709) this.pos.y = 709;
+        if (this.pos.y < gravity) this.pos.y = gravity;
+        if (this.pos.x > 2115 - indie.size.x) this.pos.x = 2115 - indie.size.x;
+        if (this.pos.y > 709 - indie.size.y) indie.pos.y = 709 - indie.size.y;
+        var collision = collider.check(this.getCollisionPoints());
+        if (collision.x) this.pos.x -= this.vel.x;
+        if (collision.y) this.pos.y -= this.vel.y;else {
+            this.pos.y += gravity;
+        }
     };
     indie.draw = function (ctx, camera) {
-        console.log(this.vel);
         camera.focus(this.pos, {
             x: parseInt(this.vel.x / this.speed),
             y: parseInt(this.vel.y / this.speed)
         });
         camera.check();
-        sprites.draw("idle", ctx, this.pos.x - camera.pos.x, this.pos.y - camera.pos.y);
-        console.log(camera.pos);
+        sprites.draw("idle", ctx, (this.pos.x - camera.pos.x) * 2, (this.pos.y - camera.pos.y) * 2);
+        var p = this.getCollisionPoints();
+        [].concat(_toConsumableArray(p.x), _toConsumableArray(p.y)).forEach(function (pos) {
+            ctx.beginPath();
+            ctx.arc((pos.x - camera.pos.x) * 2, (pos.y - camera.pos.y) * 2, 2, 0, 2 * Math.PI);
+            ctx.closePath();
+            ctx.fillStyle = "white";
+            ctx.fill();
+        });
     };
     return indie;
 }
@@ -447,7 +590,7 @@ var _SpriteSet2 = _interopRequireDefault(_SpriteSet);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var IMAGES = ["logo.png", "mapa.png", "sprites.png", "scoreboard.jpg"];
+var IMAGES = ["logo.png", "mapa.png", "sprites.png", "scoreboard.jpg", "collision1-1.png"];
 
 document.addEventListener("DOMContentLoaded", function () {
     var canvas = document.getElementById("screen");
@@ -459,11 +602,12 @@ document.addEventListener("DOMContentLoaded", function () {
         imgs.push((0, _loaders.loadImage)(url));
     });
     Promise.all(imgs).then(function (_ref) {
-        var _ref2 = _slicedToArray(_ref, 4),
+        var _ref2 = _slicedToArray(_ref, 5),
             logo = _ref2[0],
             map = _ref2[1],
             spriteSheet = _ref2[2],
-            scoreboard = _ref2[3];
+            scoreboard = _ref2[3],
+            coll = _ref2[4];
 
         ctx.drawImage(logo, 120, 30, 400, 126);
         ctx.font = "40px Cousine, monospace";
@@ -492,7 +636,7 @@ document.addEventListener("DOMContentLoaded", function () {
         var ts = requestAnimationFrame(startScreen);
         var game = new _Game2.default(spriteSheet);
         var gameImgs = {
-            bg: map,
+            bg: coll,
             score: scoreboard
         };
 
@@ -539,6 +683,11 @@ var Vec2 = exports.Vec2 = function () {
         value: function set(x, y) {
             this.x = x;
             this.y = y;
+        }
+    }, {
+        key: "clone",
+        value: function clone() {
+            return new Vec2(this.x, this.y);
         }
     }]);
 
