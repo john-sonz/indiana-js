@@ -21,7 +21,7 @@ document.addEventListener("DOMContentLoaded", function () {
         ctx.textAlign = "center";
         let text = false;
         let start = false;
-
+        let ts;
         function startScreen() {
             if (text) {
                 ctx.fillStyle = "#d0dc71";
@@ -31,14 +31,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 ctx.fillRect(0, 200, canvas.width, canvas.height);
             }
             if (!start) {
-                requestAnimationFrame(startScreen);
+                ts = requestAnimationFrame(startScreen);
             } else {
-                ctx.fillStyle = "black";
-                ctx.fillRect(0, 200, canvas.width, canvas.height);
+                cancelAnimationFrame(ts);               
+                          
             }
         };
         setInterval(() => text = !text, 1000);
-        let ts = requestAnimationFrame(startScreen);
+        ts = requestAnimationFrame(startScreen);
         const game = new Game(spriteSheet);
         const gameImgs = {
             bg: coll,
@@ -47,8 +47,10 @@ document.addEventListener("DOMContentLoaded", function () {
         
         window.addEventListener("keydown", e => {
             if (e.key == "Enter") {
-                start = true;
-                cancelAnimationFrame(ts)
+                start = true;      
+                cancelAnimationFrame(ts);
+                ctx.fillStyle = "black";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);          
                 game.start(gameImgs, ctx, canvas);
             }
         });

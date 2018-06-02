@@ -10,27 +10,45 @@ export default class Game {
         const indie = createIndie(spriteSheet);
         const gravity = 0.3;
         const camera = new Camera();
-        const collider = new Collider("collision1-1.png");        
+        const collider = new Collider("collision1-1.png");
+        this.playing = false;
         this.play = function (images, ctx, canvas) {
             const this_ = this;
             indie.vel.set(0, 0);
+            ctx.drawImage(images.score, 10, 260, 620, 130);
 
             function render() {
                 ctx.fillStyle = "green";
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-
+                ctx.fillRect(0, 0, 640, 250);
                 ctx.drawImage(images.bg, camera.pos.x, camera.pos.y, 320, 125, 0, 0, 640, 250);
-
-                ctx.drawImage(images.score, 10, 260, 620, 130);
-
-                indie.update(collider);
                 indie.draw(ctx, camera);
-                requestAnimationFrame(render);
+
+                if (this.playing) {
+                    requestAnimationFrame(render);
+                }
             }
+
+            function update() {
+                if (this.playing) {
+                    indie.update(collider, camera);
+                }
+            };
+            setInterval(update, 15);
             render();
         }
     }
     start(images, ctx, canvas) {
+        this.playing = false;
         this.play(images, ctx, canvas);
+    }
+    end(ctx) {
+        function endScreen() {
+            ctx.fillStyle = "black";
+            ctx.fillRect(0, 0, 640, 400);
+            ctx.fillStyle = "#d0dc71";
+            ctx.fillText("YOU LOST", 640 / 2, 400 * 0.65);
+            requestAnimationFrame(endScreen)
+        }
+        endScreen();
     }
 }

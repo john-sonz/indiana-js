@@ -163,6 +163,7 @@ var Collider = function () {
         value: function check(positions) {
             var vert = false;
             var hori = false;
+            var rope = false;
             var _iteratorNormalCompletion = true;
             var _didIteratorError = false;
             var _iteratorError = undefined;
@@ -171,15 +172,24 @@ var Collider = function () {
                 for (var _iterator = positions.y[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
                     var pos = _step.value;
 
-                    var p = this.context.getImageData(pos.x, pos.y, 1, 1).data;
+                    var p = this.context.getImageData(parseInt(pos.x), parseInt(pos.y), 1, 1).data;
                     var color = p[0] + " " + p[1] + " " + p[2] + " " + p[3];
-                    if (color === "0 0 0 255") {
-                        vert = true;
-                        break;
-                    }
-                    if (color === "237 119 15 255") {
-                        vert = true;
-                        break;
+                    if (p[3] === 255) {
+                        if (color === "255 255 255 255") {
+                            return {
+                                x: hori,
+                                y: vert,
+                                rope: true
+                            };
+                        }
+                        if (color === "0 0 0 255") {
+                            vert = true;
+                            break;
+                        }
+                        if (color === "237 119 15 255") {
+                            vert = true;
+                            break;
+                        }
                     }
                 }
             } catch (err) {
@@ -207,9 +217,19 @@ var Collider = function () {
 
                     var p = this.context.getImageData(_pos.x, _pos.y, 1, 1).data;
                     var color = p[0] + " " + p[1] + " " + p[2] + " " + p[3];
-                    if (color === "0 0 0 255") {
-                        hori = true;
-                        break;
+                    if (p[3] === 255) {
+
+                        if (color === "255 255 255 255") {
+                            return {
+                                x: hori,
+                                y: vert,
+                                rope: true
+                            };
+                        }
+                        if (color === "0 0 0 255") {
+                            hori = true;
+                            break;
+                        }
                     }
                 }
             } catch (err) {
@@ -229,7 +249,8 @@ var Collider = function () {
 
             return {
                 x: hori,
-                y: vert
+                y: vert,
+                rope: rope
             };
         }
     }]);
@@ -308,22 +329,29 @@ var Game = function () {
         var gravity = 0.3;
         var camera = new _Camera2.default();
         var collider = new _Collider2.default("collision1-1.png");
+        this.playing = false;
         this.play = function (images, ctx, canvas) {
             var this_ = this;
             indie.vel.set(0, 0);
+            ctx.drawImage(images.score, 10, 260, 620, 130);
 
             function render() {
                 ctx.fillStyle = "green";
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-
+                ctx.fillRect(0, 0, 640, 250);
                 ctx.drawImage(images.bg, camera.pos.x, camera.pos.y, 320, 125, 0, 0, 640, 250);
-
-                ctx.drawImage(images.score, 10, 260, 620, 130);
-
-                indie.update(collider);
                 indie.draw(ctx, camera);
-                requestAnimationFrame(render);
+
+                if (this.playing) {
+                    requestAnimationFrame(render);
+                }
             }
+
+            function update() {
+                if (this.playing) {
+                    indie.update(collider, camera);
+                }
+            };
+            setInterval(update, 15);
             render();
         };
     }
@@ -331,7 +359,20 @@ var Game = function () {
     _createClass(Game, [{
         key: "start",
         value: function start(images, ctx, canvas) {
+            this.playing = false;
             this.play(images, ctx, canvas);
+        }
+    }, {
+        key: "end",
+        value: function end(ctx) {
+            function endScreen() {
+                ctx.fillStyle = "black";
+                ctx.fillRect(0, 0, 640, 400);
+                ctx.fillStyle = "#d0dc71";
+                ctx.fillText("YOU LOST", 640 / 2, 400 * 0.65);
+                requestAnimationFrame(endScreen);
+            }
+            endScreen();
         }
     }]);
 
@@ -365,6 +406,7 @@ var Keyboard = function () {
         _classCallCheck(this, Keyboard);
 
         this.keyStates = new Map();
+        this.listeners = new Map();
     }
 
     _createClass(Keyboard, [{
@@ -378,6 +420,7 @@ var Keyboard = function () {
             var keyState = e.type === 'keydown' ? 1 : 0;
             if (this.keyStates.get(key) === keyState) return;
             this.keyStates.set(key, keyState);
+            if (keyState === 1 && this.listeners.has(key)) this.listeners.get(key)();
         }
     }, {
         key: 'listenTo',
@@ -392,6 +435,12 @@ var Keyboard = function () {
             ["KeyA", "KeyW", "KeyD", "KeyS"].forEach(function (key) {
                 return _this.keyStates.set(key, 0);
             });
+        }
+    }, {
+        key: 'setListener',
+        value: function setListener(key, listener) {
+            this.keyStates.set(key, 0);
+            this.listeners.set(key, listener);
         }
     }]);
 
@@ -433,17 +482,38 @@ var SpriteSet = function () {
     _createClass(SpriteSet, [{
         key: "define",
         value: function define(name, x, y, width, height) {
-            var buffer = document.createElement("canvas");
-            buffer.width = width;
-            buffer.height = height;
-            buffer.getContext("2d").drawImage(this.image, x, y, width, height, 0, 0, width, height);
-            this.sprites.set(name, buffer);
+            var _this = this;
+
+            var t = [];
+            [false, true].map(function (reverse) {
+                var buffer = document.createElement("canvas");
+                buffer.width = width;
+                buffer.height = height;
+                var context = buffer.getContext("2d");
+                if (reverse) {
+                    context.translate(width, 0);
+                    context.scale(-1, 1);
+                }
+                context.drawImage(_this.image, x, y, width, height, 0, 0, width, height);
+                t.push(buffer);
+            });
+            this.sprites.set(name, t);
+        }
+    }, {
+        key: "defineAnim",
+        value: function defineAnim(spec) {
+            for (var i = 0; i < spec.frames.length; i++) {
+                var f = spec.frames[i];
+                this.define(spec.name + i, f.pos.x, f.pos.y, f.width, f.height);
+            }
         }
     }, {
         key: "draw",
         value: function draw(name, context, x, y) {
+            var reverse = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : false;
+
             var buffer = this.sprites.get(name);
-            context.drawImage(buffer, x, y);
+            context.drawImage(buffer[reverse ? 1 : 0], x, y);
         }
     }]);
 
@@ -483,57 +553,141 @@ var _Keyboard2 = _interopRequireDefault(_Keyboard);
 
 var _math = __webpack_require__(/*! ./math */ "./src/js/math.js");
 
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+var _specs = __webpack_require__(/*! ./specs.js */ "./src/js/specs.js");
 
-function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function createIndie(image) {
     var indie = new _Entity2.default();
     indie.pos.set(50, 330);
-    indie.speed = 2;
+    indie.speed = 2.5;
     indie.size = new _math.Vec2(15, 25);
     var sprites = new _SpriteSet2.default(image, 30, 50);
     sprites.define("idle", 0, 0, 30, 50);
+    sprites.define("jump", 81, 68, 34, 50);
+    sprites.defineAnim(_specs.specs.run);
+    sprites.defineAnim(_specs.specs.climb);
+    console.log(sprites);
     var input = new _Keyboard2.default();
+    var ropeMode = false;
     input.listenTo(window);
-    var gravity = 3;
-    indie.getCollisionPoints = function () {
-        return {
-            y: [new _math.Vec2(this.pos.x + this.size.x / 6 * 5, this.pos.y + this.size.y), new _math.Vec2(this.pos.x + this.size.x / 6, this.pos.y + this.size.y), new _math.Vec2(this.pos.x + this.size.x / 6 * 5, this.pos.y), new _math.Vec2(this.pos.x + this.size.x / 6, this.pos.y)],
-            x: [new _math.Vec2(this.pos.x, this.pos.y + this.size.y / 6 * 5), new _math.Vec2(this.pos.x, this.pos.y + this.size.y / 6), new _math.Vec2(this.pos.x + this.size.x, this.pos.y + this.size.y / 6 * 5), new _math.Vec2(this.pos.x + this.size.x, this.pos.y + this.size.y / 6)]
-        };
+
+    input.setListener("KeyW", function (e) {
+        if (ropeMode) {
+            return;
+        } else if (!indie.jumping && !(input.keyStates.get("KeyA") || input.keyStates.get("KeyD"))) {
+            indie.vel.y = -9.5;
+            indie.jumping = true;
+        }
+    });
+    input.setListener("KeyE", function (e) {
+        if (!indie.jumping) {
+            ropeMode = false;
+            indie.vel.y = -9.5;
+            indie.vel.x = indie.speed;
+            indie.jumping = true;
+            indie.update();
+        }
+    });
+    input.setListener("KeyQ", function (e) {
+        if (!indie.jumping) {
+            ropeMode = false;
+            indie.vel.y = -9.5;
+            indie.vel.x = -indie.speed;
+            indie.jumping = true;
+            indie.update();
+        }
+    });
+    var distance = 0;
+    var gravity = 1;
+    var resistance = 0.95;
+    indie.collisionPoints = {
+        y: [new _math.Vec2(), new _math.Vec2(), new _math.Vec2()],
+        x: [new _math.Vec2(), new _math.Vec2(), new _math.Vec2(), new _math.Vec2()]
+    };
+    indie.updateCollisionPoints = function () {
+        this.collisionPoints.y[0].set(this.pos.x + this.size.x / 6 * 5, this.pos.y + this.size.y - 2);
+        this.collisionPoints.y[1].set(this.pos.x + this.size.x / 6, this.pos.y + this.size.y - 2);
+        this.collisionPoints.y[2].set(this.pos.x + this.size.x / 2, this.pos.y + 2);
+
+        this.collisionPoints.x[0].set(this.pos.x + 2, this.pos.y + this.size.y / 6 * 5);
+        this.collisionPoints.x[1].set(this.pos.x + 2, this.pos.y + this.size.y / 6);
+        this.collisionPoints.x[2].set(this.pos.x + this.size.x - 2, this.pos.y + this.size.y / 6 * 5);
+        this.collisionPoints.x[3].set(this.pos.x + this.size.x - 2, this.pos.y + this.size.y / 6);
     };
     indie.update = function (collider) {
-        this.vel.x = (-input.keyStates.get("KeyA") + input.keyStates.get("KeyD")) * this.speed;
-        this.vel.y = (-input.keyStates.get("KeyW") + input.keyStates.get("KeyS")) * 5;
-        this.vel.y += 0.5;
+        if (!ropeMode) {
+            if (!this.jumping) {
+                this.vel.x = (-input.keyStates.get("KeyA") + input.keyStates.get("KeyD")) * this.speed;
+            } else {
+                this.vel.x *= resistance;
+            }
+            this.vel.y += gravity;
+            if (this.vel.y > 6) {
+                this.vel.y = 2;
+                this.jumping = true;
+            }
+        } else {
+            this.vel.x = 0;
+            this.vel.y = (-input.keyStates.get("KeyW") + input.keyStates.get("KeyS")) * 1.5;
+        }
         this.pos.x += this.vel.x;
         this.pos.y += this.vel.y;
+
         if (this.pos.x < 0) this.pos.x = 0;
         if (this.pos.y < gravity) this.pos.y = gravity;
         if (this.pos.x > 2115 - indie.size.x) this.pos.x = 2115 - indie.size.x;
         if (this.pos.y > 709 - indie.size.y) indie.pos.y = 709 - indie.size.y;
-        var collision = collider.check(this.getCollisionPoints());
-        if (collision.x) this.pos.x -= this.vel.x;
-        if (collision.y) this.pos.y -= this.vel.y;else {
-            this.pos.y += gravity;
+
+        if (collider) {
+            this.updateCollisionPoints();
+            var collision = collider.check(this.collisionPoints);
+            if (collision.rope) {
+                ropeMode = true;
+                this.jumping = false;
+                this.pos.x += 2 * this.vel.x;
+            } else {
+                ropeMode = false;
+                if (collision.x) {
+                    this.pos.x -= this.vel.x;
+                } else distance += Math.abs(this.vel.x);
+                if (collision.y) {
+                    this.pos.y -= this.vel.y;
+                    this.jumping = false;
+                }
+            }
         }
     };
+    var lastDir = 0;
+    var ropeDistance = 0;
+    indie.resolveFrame = function (len) {
+        if (ropeMode) {
+            if (this.vel.y !== 0) {
+                var n = Math.floor(distance / (len * 2) % _specs.specs.climb.frames.length);
+                distance += 1.5;
+                return "climb" + n;
+            }
+            return "climb0";
+        }
+        if (this.jumping) return "jump";
+        if (this.vel.x !== 0) {
+            var _n = Math.floor(distance / len % _specs.specs.run.frames.length);
+            return "run" + _n;
+        }
+        return "idle";
+    };
+
     indie.draw = function (ctx, camera) {
+        var xDir = this.vel.x !== 0 ? parseInt(this.vel.x / Math.abs(this.vel.x)) : lastDir;
+        lastDir = xDir;
+
         camera.focus(this.pos, {
-            x: parseInt(this.vel.x / this.speed),
-            y: parseInt(this.vel.y / this.speed)
+            x: xDir,
+            y: parseInt(this.vel.y)
         });
         camera.check();
-        sprites.draw("idle", ctx, (this.pos.x - camera.pos.x) * 2, (this.pos.y - camera.pos.y) * 2);
-        var p = this.getCollisionPoints();
-        [].concat(_toConsumableArray(p.x), _toConsumableArray(p.y)).forEach(function (pos) {
-            ctx.beginPath();
-            ctx.arc((pos.x - camera.pos.x) * 2, (pos.y - camera.pos.y) * 2, 2, 0, 2 * Math.PI);
-            ctx.closePath();
-            ctx.fillStyle = "white";
-            ctx.fill();
-        });
+        sprites.draw(this.resolveFrame(5), ctx, (this.pos.x - camera.pos.x) * 2, (this.pos.y - camera.pos.y) * 2, xDir == -1);
+        if (distance > 10000) distance = 0;
     };
     return indie;
 }
@@ -614,7 +768,7 @@ document.addEventListener("DOMContentLoaded", function () {
         ctx.textAlign = "center";
         var text = false;
         var start = false;
-
+        var ts = void 0;
         function startScreen() {
             if (text) {
                 ctx.fillStyle = "#d0dc71";
@@ -624,16 +778,15 @@ document.addEventListener("DOMContentLoaded", function () {
                 ctx.fillRect(0, 200, canvas.width, canvas.height);
             }
             if (!start) {
-                requestAnimationFrame(startScreen);
+                ts = requestAnimationFrame(startScreen);
             } else {
-                ctx.fillStyle = "black";
-                ctx.fillRect(0, 200, canvas.width, canvas.height);
+                cancelAnimationFrame(ts);
             }
         };
         setInterval(function () {
             return text = !text;
         }, 1000);
-        var ts = requestAnimationFrame(startScreen);
+        ts = requestAnimationFrame(startScreen);
         var game = new _Game2.default(spriteSheet);
         var gameImgs = {
             bg: coll,
@@ -644,6 +797,8 @@ document.addEventListener("DOMContentLoaded", function () {
             if (e.key == "Enter") {
                 start = true;
                 cancelAnimationFrame(ts);
+                ctx.fillStyle = "black";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
                 game.start(gameImgs, ctx, canvas);
             }
         });
@@ -693,6 +848,102 @@ var Vec2 = exports.Vec2 = function () {
 
     return Vec2;
 }();
+
+/***/ }),
+
+/***/ "./src/js/specs.js":
+/*!*************************!*\
+  !*** ./src/js/specs.js ***!
+  \*************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+var specs = exports.specs = {
+    run: {
+        "name": "run",
+        "frames": [{
+            "pos": {
+                "x": 120,
+                "y": 0
+            },
+            "width": 25,
+            "height": 50
+        }, {
+            "pos": {
+                "x": 180,
+                "y": 0
+            },
+            "width": 25,
+            "height": 50
+        }, {
+            "pos": {
+                "x": 240,
+                "y": 0
+            },
+            "width": 30,
+            "height": 50
+        }, {
+            "pos": {
+                "x": 280,
+                "y": 0
+            },
+            "width": 30,
+            "height": 50
+        }, {
+            "pos": {
+                "x": 350,
+                "y": 0
+            },
+            "width": 25,
+            "height": 50
+        }, {
+            "pos": {
+                "x": 410,
+                "y": 0
+            },
+            "width": 30,
+            "height": 50
+        }, {
+            "pos": {
+                "x": 449,
+                "y": 0
+            },
+            "width": 30,
+            "height": 50
+        }, {
+            "pos": {
+                "x": 488,
+                "y": 0
+            },
+            "width": 30,
+            "height": 50
+        }]
+    },
+    climb: {
+        "name": "climb",
+        "frames": [{
+            "pos": {
+                "x": 217,
+                "y": 64
+            },
+            "width": 20,
+            "height": 50
+        }, {
+            "pos": {
+                "x": 250,
+                "y": 64
+            },
+            "width": 20,
+            "height": 50
+        }]
+    }
+};
 
 /***/ })
 

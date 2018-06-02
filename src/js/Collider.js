@@ -15,29 +15,54 @@ export default class Collider {
     check(positions) {
         let vert = false;
         let hori = false;
+        let rope = false;
         for (const pos of positions.y) {
-            let p = this.context.getImageData(pos.x, pos.y, 1, 1).data;
+            let p = this.context.getImageData(parseInt(pos.x), parseInt(pos.y), 1, 1).data;
             const color = p[0] + " " + p[1] + " " + p[2] + " " + p[3];
-            if (color === "0 0 0 255") {
-                vert = true;
-                break;
+            if (p[3] === 255) {
+                if (color === "255 255 255 255") {
+                    return {
+                        x: hori,
+                        y: vert,
+                        rope: true
+                    };
+
+                }
+                if (color === "0 0 0 255") {
+                    vert = true;
+                    break;
+                }
+                if (color === "237 119 15 255") {
+                    vert = true;
+                    break;
+                }
             }
-            if (color === "237 119 15 255") {
-                vert = true;
-                break;
-            }
+
         }
         for (const pos of positions.x) {
             let p = this.context.getImageData(pos.x, pos.y, 1, 1).data;
             const color = p[0] + " " + p[1] + " " + p[2] + " " + p[3];
-            if (color === "0 0 0 255") {
-                hori = true;
-                break;
+            if (p[3] === 255) {
+
+                if (color === "255 255 255 255") {
+                    return {
+                        x: hori,
+                        y: vert,
+                        rope: true
+                    };
+
+                }
+                if (color === "0 0 0 255") {
+                    hori = true;
+                    break;
+                }
+
             }
         }
         return {
             x: hori,
-            y: vert
+            y: vert,
+            rope: rope
         }
     }
 }
