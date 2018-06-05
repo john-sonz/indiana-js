@@ -3,7 +3,8 @@ import {
 } from "./loaders.js";
 import Game from "./Game.js"
 import SpriteSet from "./SpriteSet.js";
-
+const map = document.createElement("canvas");
+const scoreboard = document.createElement("canvas");
 const IMAGES = ["logo.png", "mapa.png", "sprites.png", "scoreboard.jpg", "collision1-1.png"];
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -15,13 +16,21 @@ document.addEventListener("DOMContentLoaded", function () {
     IMAGES.forEach(url => {
         imgs.push(loadImage(url));
     });
-    Promise.all(imgs).then(([logo, map, spriteSheet, scoreboard, coll]) => {
+    Promise.all(imgs).then(([logo, m, spriteSheet, scbrd, coll]) => {
+        map.width = 2115;
+        map.height = 709;
+        map.getContext("2d").drawImage(m, 0, 0, 2115, 709);
+        scoreboard.width = 269;
+        scoreboard.height = 57;
+        scoreboard.getContext("2d").drawImage(scbrd, 0, 0, 269, 57);
+
         ctx.drawImage(logo, 120, 30, 400, 126);
         ctx.font = "40px Cousine, monospace";
         ctx.textAlign = "center";
         let text = false;
         let start = false;
         let ts;
+
         function startScreen() {
             if (text) {
                 ctx.fillStyle = "#d0dc71";
@@ -33,24 +42,25 @@ document.addEventListener("DOMContentLoaded", function () {
             if (!start) {
                 ts = requestAnimationFrame(startScreen);
             } else {
-                cancelAnimationFrame(ts);               
-                          
+                cancelAnimationFrame(ts);
+
             }
         };
         setInterval(() => text = !text, 1000);
         ts = requestAnimationFrame(startScreen);
-        const game = new Game(spriteSheet);
         const gameImgs = {
-            bg: coll,
+            bg: map,
             score: scoreboard
         }
+        const game = new Game(spriteSheet, gameImgs);
         
+
         window.addEventListener("keydown", e => {
             if (e.key == "Enter") {
-                start = true;      
+                start = true;
                 cancelAnimationFrame(ts);
                 ctx.fillStyle = "black";
-                ctx.fillRect(0, 0, canvas.width, canvas.height);          
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
                 game.start(gameImgs, ctx, canvas);
             }
         });

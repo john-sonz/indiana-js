@@ -13,6 +13,7 @@ export function createIndie(image) {
     indie.pos.set(50, 330);
     indie.speed = 2.5;
     indie.size = new Vec2(15, 25);
+    indie.whips = 0;
     const sprites = new SpriteSet(image, 30, 50);
     sprites.define("idle", 0, 0, 30, 50);
     sprites.define("jump", 81, 68, 34, 50);
@@ -64,7 +65,8 @@ export function createIndie(image) {
             new Vec2(),
             new Vec2(),
             new Vec2(),
-        ]
+        ],
+        center: new Vec2()
     };
     indie.updateCollisionPoints = function () {
         this.collisionPoints.y[0].set(this.pos.x + this.size.x / 6 * 5, this.pos.y + this.size.y - 2);
@@ -77,6 +79,7 @@ export function createIndie(image) {
         this.collisionPoints.x[2].set(this.pos.x + this.size.x - 2, this.pos.y + this.size.y / 6 * 5);
         this.collisionPoints.x[3].set(this.pos.x + this.size.x - 2, this.pos.y + this.size.y / 6);
 
+        this.collisionPoints.center.set(this.pos.x + this.size.x / 2, this.pos.y + this.size.y / 2);
     }
     indie.update = function (collider) {
         if (!ropeMode) {
@@ -120,10 +123,11 @@ export function createIndie(image) {
                     this.pos.y -= this.vel.y;
                     this.jumping = false;
                 }
+                if (collision.collected === "whip") this.whips += 5;
             }
         }
-
     }
+
     let lastDir = 0;
     let ropeDistance = 0;
     indie.resolveFrame = function (len) {
@@ -147,8 +151,6 @@ export function createIndie(image) {
     indie.draw = function (ctx, camera) {
         const xDir = this.vel.x !== 0 ? parseInt(this.vel.x / Math.abs(this.vel.x)) : lastDir;
         lastDir = xDir;
-
-
         camera.focus(this.pos, {
             x: xDir,
             y: parseInt(this.vel.y)

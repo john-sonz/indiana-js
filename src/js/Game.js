@@ -3,33 +3,51 @@ import {
 } from "./entities.js";
 import Camera from "./Camera.js";
 import Collider from "./Collider.js";
+import Light from "./Light.js";
 
 
 export default class Game {
-    constructor(spriteSheet) {
+    constructor(spriteSheet, imgs) {
         const indie = createIndie(spriteSheet);
         const gravity = 0.3;
         const camera = new Camera();
-        const collider = new Collider("collision1-1.png");
+        let scoreboard = {
+            needsUpdate: false
+        }
+        const light = new Light();
+
+        const collider = new Collider("collision1-1.png", imgs.bg, imgs.score, scoreboard, light, this);
         this.playing = false;
         this.play = function (images, ctx, canvas) {
             const this_ = this;
+            light.resetTimeout();
             indie.vel.set(0, 0);
             ctx.drawImage(images.score, 10, 260, 620, 130);
-
-            function render() {
+            this_.ctx = ctx;
+            function render() {                
                 ctx.fillStyle = "green";
                 ctx.fillRect(0, 0, 640, 250);
                 ctx.drawImage(images.bg, camera.pos.x, camera.pos.y, 320, 125, 0, 0, 640, 250);
                 indie.draw(ctx, camera);
-
-                if (this.playing) {
+                console.log(light.alpha);
+                if (light.alpha > 0) {
+                    ctx.fillStyle = "rgba(0,0,0," + light.alpha + ")";
+                    ctx.fillRect(0, 0, 640, 250);
+                }
+                if (light.alpha > 0.85) {
+                    this_.end();
+                }
+                if (scoreboard.needsUpdate) {
+                    ctx.drawImage(images.score, 10, 260, 620, 130);
+                    scoreboard.needsUpdate = false;
+                }
+                if (this_.playing) {
                     requestAnimationFrame(render);
                 }
             }
 
             function update() {
-                if (this.playing) {
+                if (this_.playing) {
                     indie.update(collider, camera);
                 }
             };
@@ -38,10 +56,13 @@ export default class Game {
         }
     }
     start(images, ctx, canvas) {
-        this.playing = false;
+        this.playing = true;
         this.play(images, ctx, canvas);
     }
-    end(ctx) {
+    end() {
+        this.playing = false;
+        let ctx = this.ctx;
+
         function endScreen() {
             ctx.fillStyle = "black";
             ctx.fillRect(0, 0, 640, 400);
