@@ -10,7 +10,7 @@ import {
 
 export function createIndie(image) {
     const indie = new Entity();
-    indie.pos.set(50, 330);
+    indie.pos.set(50, 320);
     indie.speed = 2.5;
     indie.size = new Vec2(15, 25);
     indie.whips = 0;
@@ -149,6 +149,7 @@ export function createIndie(image) {
     }
 
     indie.draw = function (ctx, camera) {
+        //console.log(this.pos);
         const xDir = this.vel.x !== 0 ? parseInt(this.vel.x / Math.abs(this.vel.x)) : lastDir;
         lastDir = xDir;
         camera.focus(this.pos, {

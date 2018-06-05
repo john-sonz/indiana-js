@@ -4,19 +4,22 @@ import {
 import Camera from "./Camera.js";
 import Collider from "./Collider.js";
 import Light from "./Light.js";
+import Scoreboard from "./Scoreboard.js";
+import Rock from "./Rocks.js";
 
 
 export default class Game {
     constructor(spriteSheet, imgs) {
         const indie = createIndie(spriteSheet);
+        window.indie = indie;
         const gravity = 0.3;
         const camera = new Camera();
-        let scoreboard = {
-            needsUpdate: false
-        }
-        const light = new Light();
 
-        const collider = new Collider("collision1-1.png", imgs.bg, imgs.score, scoreboard, light, this);
+        const scoreboard = new Scoreboard(imgs.score);
+        scoreboard.setWhips(0);
+        const light = new Light();
+        const rocks = [new Rock(400, 660, 40, 1), new Rock(350, 440, 110)]
+        const collider = new Collider("collision1-1.png", imgs.bg, scoreboard, light, this, rocks);
         this.playing = false;
         this.play = function (images, ctx, canvas) {
             const this_ = this;
@@ -24,21 +27,31 @@ export default class Game {
             indie.vel.set(0, 0);
             ctx.drawImage(images.score, 10, 260, 620, 130);
             this_.ctx = ctx;
-            function render() {                
+            setInterval(function () {
+                rocks.forEach(rock => {
+                    rock.update();
+                });
+            }, 32);
+            camera.focus(indie.pos, 1);
+
+            function render() {
                 ctx.fillStyle = "green";
                 ctx.fillRect(0, 0, 640, 250);
                 ctx.drawImage(images.bg, camera.pos.x, camera.pos.y, 320, 125, 0, 0, 640, 250);
                 indie.draw(ctx, camera);
-                console.log(light.alpha);
+                rocks.forEach(rock => {
+                    rock.draw(ctx, imgs.rock, camera);
+                });
+
                 if (light.alpha > 0) {
                     ctx.fillStyle = "rgba(0,0,0," + light.alpha + ")";
                     ctx.fillRect(0, 0, 640, 250);
                 }
-                if (light.alpha > 0.85) {
-                    this_.end();
+                if (light.alpha > 0.85 || scoreboard.hp <= 0) {
+                    this_.end(false);
                 }
                 if (scoreboard.needsUpdate) {
-                    ctx.drawImage(images.score, 10, 260, 620, 130);
+                    scoreboard.draw(ctx);
                     scoreboard.needsUpdate = false;
                 }
                 if (this_.playing) {
@@ -59,17 +72,19 @@ export default class Game {
         this.playing = true;
         this.play(images, ctx, canvas);
     }
-    end() {
+    end(win) {
         this.playing = false;
         let ctx = this.ctx;
+        let msg = win ? "CONGRATULATIONS! YOU WIN!" : "YOU LOST"
 
         function endScreen() {
             ctx.fillStyle = "black";
             ctx.fillRect(0, 0, 640, 400);
             ctx.fillStyle = "#d0dc71";
-            ctx.fillText("YOU LOST", 640 / 2, 400 * 0.65);
+            ctx.fillText(msg, 640 / 2, 400 * 0.65);
             requestAnimationFrame(endScreen)
         }
         endScreen();
     }
+
 }

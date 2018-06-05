@@ -150,13 +150,14 @@ function beetween(val, start, end) {
 var map = void 0,
     sb = void 0,
     light = void 0,
-    game = void 0;
+    game = void 0,
+    rocks = void 0;
 
 var Collider = function () {
-    function Collider(imgsrc, m, s, u, l, g) {
+    function Collider(imgsrc, m, s, l, g, r) {
         _classCallCheck(this, Collider);
 
-        this.update = u;
+        rocks = r;
         map = m;
         sb = s;
         light = l;
@@ -195,13 +196,25 @@ var Collider = function () {
             var hori = false;
             var rope = false;
             var collected = false;
+
+            rocks.forEach(function (rock) {
+                if (!rock.collided) {
+                    if (beetween(rock.pos.x, positions.center.x - 12, positions.center.x + 12)) {
+                        if (beetween(rock.pos.y, positions.center.y - 20, positions.center.y + 20)) {
+                            rock.collided = true;
+                            sb.takeHp();
+                        }
+                    }
+                }
+            });
+
             if (this.flags.whip) {
                 if (beetween(positions.center.y, 675, 690)) {
                     if (beetween(positions.center.x, 450, 470)) {
                         collected = "whip";
                         map.getContext("2d").fillStyle = "black";
                         map.getContext("2d").fillRect(450, 675, 20, 20);
-
+                        sb.setWhips(5);
                         this.flags.whip = false;
                     }
                 }
@@ -210,15 +223,11 @@ var Collider = function () {
                 if (beetween(positions.center.y, 435, 455)) {
                     if (beetween(positions.center.x, 880, 900)) {
                         collected = "cross";
-                        var sbctx = sb.getContext("2d");
-                        sbctx.fillStyle = "black";
-                        sbctx.drawImage(map, 435, 455, 20, 20, 175, 25, 25, 25);
-
+                        sb.addCross(map);
                         map.getContext("2d").fillStyle = "black";
-                        map.getContext("2d").fillRect(435, 455, 20, 20);
+                        map.getContext("2d").fillRect(880, 435, 20, 20);
                         console.log(collected);
                         this.flags.cross = false;
-                        this.update.needsUpdate = true;
                     }
                 }
             }
@@ -227,14 +236,10 @@ var Collider = function () {
                     if (beetween(positions.center.y, _this.torchpos[i].y, _this.torchpos[i].y + 20)) {
                         if (beetween(positions.center.x, _this.torchpos[i].x, _this.torchpos[i].x + 20)) {
                             collected = "torch";
-                            var _sbctx = sb.getContext("2d");
-                            _sbctx.fillStyle = "black";
-                            _sbctx.fillRect(135, 25, 20, 20);
-                            _sbctx.drawImage(map, _this.torchpos[i].x, _this.torchpos[i].y, 20, 20, 135, 25, 25, 25);
+                            sb.addTorch(map, _this.torchpos[i]);
                             map.getContext("2d").fillStyle = "black";
                             map.getContext("2d").fillRect(_this.torchpos[i].x, _this.torchpos[i].y, 20, 20);
                             _this.flags.torches[i] = false;
-                            _this.update.needsUpdate = true;
                             light.resetTimeout();
                         }
                     }
@@ -268,7 +273,14 @@ var Collider = function () {
                             break;
                         }
                         if (color === "255 0 0 255") {
-                            game.end();
+                            game.end(false);
+                            break;
+                        }
+                        if (color === "0 255 0 255") {
+                            console.log(this.flags.cross);
+                            if (!this.flags.cross) game.end(true);else {
+                                vert = true;
+                            }
                             break;
                         }
                     }
@@ -316,7 +328,14 @@ var Collider = function () {
                             break;
                         }
                         if (color === "255 0 0 255") {
-                            game.end();
+                            game.end(false);
+                            break;
+                        }
+                        if (color === "0 255 0 255") {
+                            console.log(this.flags.cross);
+                            if (!this.flags.cross) game.end(true);else {
+                                hori = true;
+                            }
                             break;
                         }
                     }
@@ -411,6 +430,14 @@ var _Light = __webpack_require__(/*! ./Light.js */ "./src/js/Light.js");
 
 var _Light2 = _interopRequireDefault(_Light);
 
+var _Scoreboard = __webpack_require__(/*! ./Scoreboard.js */ "./src/js/Scoreboard.js");
+
+var _Scoreboard2 = _interopRequireDefault(_Scoreboard);
+
+var _Rocks = __webpack_require__(/*! ./Rocks.js */ "./src/js/Rocks.js");
+
+var _Rocks2 = _interopRequireDefault(_Rocks);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -420,14 +447,15 @@ var Game = function () {
         _classCallCheck(this, Game);
 
         var indie = (0, _entities.createIndie)(spriteSheet);
+        window.indie = indie;
         var gravity = 0.3;
         var camera = new _Camera2.default();
-        var scoreboard = {
-            needsUpdate: false
-        };
-        var light = new _Light2.default();
 
-        var collider = new _Collider2.default("collision1-1.png", imgs.bg, imgs.score, scoreboard, light, this);
+        var scoreboard = new _Scoreboard2.default(imgs.score);
+        scoreboard.setWhips(0);
+        var light = new _Light2.default();
+        var rocks = [new _Rocks2.default(400, 660, 40, 1), new _Rocks2.default(350, 440, 110)];
+        var collider = new _Collider2.default("collision1-1.png", imgs.bg, scoreboard, light, this, rocks);
         this.playing = false;
         this.play = function (images, ctx, canvas) {
             var this_ = this;
@@ -435,21 +463,31 @@ var Game = function () {
             indie.vel.set(0, 0);
             ctx.drawImage(images.score, 10, 260, 620, 130);
             this_.ctx = ctx;
+            setInterval(function () {
+                rocks.forEach(function (rock) {
+                    rock.update();
+                });
+            }, 32);
+            camera.focus(indie.pos, 1);
+
             function render() {
                 ctx.fillStyle = "green";
                 ctx.fillRect(0, 0, 640, 250);
                 ctx.drawImage(images.bg, camera.pos.x, camera.pos.y, 320, 125, 0, 0, 640, 250);
                 indie.draw(ctx, camera);
-                console.log(light.alpha);
+                rocks.forEach(function (rock) {
+                    rock.draw(ctx, imgs.rock, camera);
+                });
+
                 if (light.alpha > 0) {
                     ctx.fillStyle = "rgba(0,0,0," + light.alpha + ")";
                     ctx.fillRect(0, 0, 640, 250);
                 }
-                if (light.alpha > 0.85) {
-                    this_.end();
+                if (light.alpha > 0.85 || scoreboard.hp <= 0) {
+                    this_.end(false);
                 }
                 if (scoreboard.needsUpdate) {
-                    ctx.drawImage(images.score, 10, 260, 620, 130);
+                    scoreboard.draw(ctx);
                     scoreboard.needsUpdate = false;
                 }
                 if (this_.playing) {
@@ -475,15 +513,16 @@ var Game = function () {
         }
     }, {
         key: "end",
-        value: function end() {
+        value: function end(win) {
             this.playing = false;
             var ctx = this.ctx;
+            var msg = win ? "CONGRATULATIONS! YOU WIN!" : "YOU LOST";
 
             function endScreen() {
                 ctx.fillStyle = "black";
                 ctx.fillRect(0, 0, 640, 400);
                 ctx.fillStyle = "#d0dc71";
-                ctx.fillText("YOU LOST", 640 / 2, 400 * 0.65);
+                ctx.fillText(msg, 640 / 2, 400 * 0.65);
                 requestAnimationFrame(endScreen);
             }
             endScreen();
@@ -596,7 +635,7 @@ var Light = function () {
         value: function updateAlpha() {
             var _this = this;
 
-            this.alpha += 0.15;
+            this.alpha += 0.01;
             this.timeout = setTimeout(function () {
                 return _this.updateAlpha();
             }, 10000);
@@ -623,6 +662,153 @@ var Light = function () {
 }();
 
 exports.default = Light;
+
+/***/ }),
+
+/***/ "./src/js/Rocks.js":
+/*!*************************!*\
+  !*** ./src/js/Rocks.js ***!
+  \*************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _math = __webpack_require__(/*! ./math */ "./src/js/math.js");
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Rock = function () {
+    function Rock(x, y, range) {
+        var speed = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 2;
+
+        _classCallCheck(this, Rock);
+
+        this.startY = y;
+        this.pos = new _math.Vec2(x, y);
+        this.range = range;
+        this.speed = speed;
+        this.alllowUpdate = true;
+        this.collided = false;
+    }
+
+    _createClass(Rock, [{
+        key: "update",
+        value: function update() {
+            var _this = this;
+
+            if (this.alllowUpdate) {
+                if (this.pos.y - this.startY > this.range) {
+                    this.pos.y = this.startY;
+                    this.alllowUpdate = false;
+                    this.collided = false;
+                    setTimeout(function () {
+                        _this.alllowUpdate = true;
+                    }, 1000);
+                } else this.pos.y = this.pos.y + this.speed;
+            }
+        }
+    }, {
+        key: "draw",
+        value: function draw(ctx, img, camera) {
+            if (this.alllowUpdate) {
+                if ((this.pos.y - camera.pos.y) * 2 < 250) ctx.drawImage(img, (this.pos.x - camera.pos.x) * 2, (this.pos.y - camera.pos.y) * 2);
+            }
+        }
+    }]);
+
+    return Rock;
+}();
+
+exports.default = Rock;
+
+/***/ }),
+
+/***/ "./src/js/Scoreboard.js":
+/*!******************************!*\
+  !*** ./src/js/Scoreboard.js ***!
+  \******************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Scoreboard = function () {
+    function Scoreboard(img) {
+        _classCallCheck(this, Scoreboard);
+
+        this.needsUpdate = true;
+        this.img = img;
+        this.hp = 100;
+        this.whips = 0;
+    }
+
+    _createClass(Scoreboard, [{
+        key: "draw",
+        value: function draw(ctx) {
+            ctx.drawImage(this.img, 10, 260, 620, 130);
+        }
+    }, {
+        key: "addTorch",
+        value: function addTorch(map, torchpos) {
+            var sbctx = this.img.getContext("2d");
+            sbctx.fillStyle = "black";
+            sbctx.fillRect(135, 25, 20, 20);
+            sbctx.drawImage(map, torchpos.x, torchpos.y, 20, 20, 135, 25, 25, 25);
+            this.needsUpdate = true;
+        }
+    }, {
+        key: "addCross",
+        value: function addCross(map) {
+            var sbctx = this.img.getContext("2d");
+            sbctx.fillStyle = "black";
+            sbctx.drawImage(map, 880, 435, 18, 18, 175, 25, 25, 25);
+            this.needsUpdate = true;
+        }
+    }, {
+        key: "takeHp",
+        value: function takeHp() {
+            this.hp -= 20;
+            var ctx = this.img.getContext("2d");
+            var offset = this.hp / 100 * 44;
+            ctx.fillStyle = "black";
+            ctx.fillRect(56 + offset, 44, 44 - offset, 6);
+            this.needsUpdate = true;
+        }
+    }, {
+        key: "setWhips",
+        value: function setWhips(n) {
+            this.whips = n;
+            var ctx = this.img.getContext("2d");
+            ctx.fillStyle = "black";
+            ctx.fillRect(113, 36, 7, 14);
+            ctx.fillStyle = "white";
+            ctx.font = "13px Cousine, monospace";
+            ctx.fillText(n.toString(), 114, 48, 6);
+            this.needsUpdate = true;
+        }
+    }]);
+
+    return Scoreboard;
+}();
+
+exports.default = Scoreboard;
 
 /***/ }),
 
@@ -734,7 +920,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function createIndie(image) {
     var indie = new _Entity2.default();
-    indie.pos.set(50, 330);
+    indie.pos.set(50, 320);
     indie.speed = 2.5;
     indie.size = new _math.Vec2(15, 25);
     indie.whips = 0;
@@ -859,6 +1045,7 @@ function createIndie(image) {
     };
 
     indie.draw = function (ctx, camera) {
+        //console.log(this.pos);
         var xDir = this.vel.x !== 0 ? parseInt(this.vel.x / Math.abs(this.vel.x)) : lastDir;
         lastDir = xDir;
         camera.focus(this.pos, {
@@ -926,7 +1113,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 var map = document.createElement("canvas");
 var scoreboard = document.createElement("canvas");
-var IMAGES = ["logo.png", "mapa.png", "sprites.png", "scoreboard.jpg", "collision1-1.png"];
+var IMAGES = ["logo.png", "mapa.png", "sprites.png", "scoreboard.jpg", "collision1-1.png", "rock.png"];
 
 document.addEventListener("DOMContentLoaded", function () {
     var canvas = document.getElementById("screen");
@@ -938,12 +1125,13 @@ document.addEventListener("DOMContentLoaded", function () {
         imgs.push((0, _loaders.loadImage)(url));
     });
     Promise.all(imgs).then(function (_ref) {
-        var _ref2 = _slicedToArray(_ref, 5),
+        var _ref2 = _slicedToArray(_ref, 6),
             logo = _ref2[0],
             m = _ref2[1],
             spriteSheet = _ref2[2],
             scbrd = _ref2[3],
-            coll = _ref2[4];
+            coll = _ref2[4],
+            rock = _ref2[5];
 
         map.width = 2115;
         map.height = 709;
@@ -979,17 +1167,20 @@ document.addEventListener("DOMContentLoaded", function () {
         ts = requestAnimationFrame(startScreen);
         var gameImgs = {
             bg: map,
-            score: scoreboard
+            score: scoreboard,
+            rock: rock
         };
         var game = new _Game2.default(spriteSheet, gameImgs);
 
         window.addEventListener("keydown", function (e) {
-            if (e.key == "Enter") {
+            var start = false;
+            if (e.key == "Enter" && !start) {
                 start = true;
                 cancelAnimationFrame(ts);
                 ctx.fillStyle = "black";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 game.start(gameImgs, ctx, canvas);
+                start = true;
             }
         });
     });

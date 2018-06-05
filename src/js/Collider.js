@@ -1,10 +1,10 @@
 function beetween(val, start, end) {
     return (val > start && val < end);
 }
-let map, sb, light, game;
+let map, sb, light, game, rocks;
 export default class Collider {
-    constructor(imgsrc, m, s, u, l,g) {
-        this.update = u;
+    constructor(imgsrc, m, s, l, g, r) {
+        rocks = r;
         map = m;
         sb = s;
         light = l;
@@ -44,13 +44,25 @@ export default class Collider {
         let hori = false;
         let rope = false;
         let collected = false;
+
+        rocks.forEach(rock => {
+            if (!rock.collided) {                
+                if (beetween(rock.pos.x, positions.center.x - 12, positions.center.x + 12)) {
+                    if (beetween(rock.pos.y, positions.center.y - 20, positions.center.y + 20)) {
+                        rock.collided = true;
+                        sb.takeHp();
+                    }
+                }
+            }
+        });
+
         if (this.flags.whip) {
             if (beetween(positions.center.y, 675, 690)) {
                 if (beetween(positions.center.x, 450, 470)) {
                     collected = "whip";
                     map.getContext("2d").fillStyle = "black";
                     map.getContext("2d").fillRect(450, 675, 20, 20)
-
+                    sb.setWhips(5);
                     this.flags.whip = false;
                 }
             }
@@ -59,15 +71,11 @@ export default class Collider {
             if (beetween(positions.center.y, 435, 455)) {
                 if (beetween(positions.center.x, 880, 900)) {
                     collected = "cross";
-                    let sbctx = sb.getContext("2d");
-                    sbctx.fillStyle = "black";
-                    sbctx.drawImage(map, 435, 455, 20, 20, 175, 25, 25, 25)
-
+                    sb.addCross(map)
                     map.getContext("2d").fillStyle = "black";
-                    map.getContext("2d").fillRect(435, 455, 20, 20)
+                    map.getContext("2d").fillRect(880, 435, 20, 20)
                     console.log(collected);
                     this.flags.cross = false;
-                    this.update.needsUpdate = true;
 
                 }
             }
@@ -77,14 +85,10 @@ export default class Collider {
                 if (beetween(positions.center.y, this.torchpos[i].y, this.torchpos[i].y + 20)) {
                     if (beetween(positions.center.x, this.torchpos[i].x, this.torchpos[i].x + 20)) {
                         collected = "torch";
-                        let sbctx = sb.getContext("2d");
-                        sbctx.fillStyle = "black";
-                        sbctx.fillRect(135, 25, 20, 20);
-                        sbctx.drawImage(map, this.torchpos[i].x, this.torchpos[i].y, 20, 20, 135, 25, 25, 25)
+                        sb.addTorch(map, this.torchpos[i]);
                         map.getContext("2d").fillStyle = "black";
                         map.getContext("2d").fillRect(this.torchpos[i].x, this.torchpos[i].y, 20, 20)
                         this.flags.torches[i] = false;
-                        this.update.needsUpdate = true;
                         light.resetTimeout();
                     }
                 }
@@ -111,9 +115,17 @@ export default class Collider {
                 if (color === "237 119 15 255") {
                     vert = true;
                     break;
-                }                
+                }
                 if (color === "255 0 0 255") {
-                    game.end();
+                    game.end(false);
+                    break;
+                }
+                if (color === "0 255 0 255") {
+                    console.log(this.flags.cross);
+                    if (!this.flags.cross) game.end(true);
+                    else {
+                        vert = true;
+                    }
                     break;
                 }
             }
@@ -141,7 +153,15 @@ export default class Collider {
                     break;
                 }
                 if (color === "255 0 0 255") {
-                    game.end();
+                    game.end(false);
+                    break;
+                }
+                if (color === "0 255 0 255") {
+                    console.log(this.flags.cross);
+                    if (!this.flags.cross) game.end(true);
+                    else {
+                        hori = true;
+                    }
                     break;
                 }
 
