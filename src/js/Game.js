@@ -13,19 +13,21 @@ import Enemy, {
 
 export default class Game {
     constructor(spriteSheet, imgs) {
-        const indie = createIndie(spriteSheet);
+        const scoreboard = new Scoreboard(imgs.score);
+        scoreboard.setWhips(0);
+        const indie = createIndie(spriteSheet, scoreboard);
         window.indie = indie;
         const gravity = 0.3;
         const camera = new Camera();
-        const scoreboard = new Scoreboard(imgs.score);
-        scoreboard.setWhips(0);
+        
+        
         const light = new Light();
         const rocks = [new Rock(400, 660, 40, 1), new Rock(350, 440, 110)];
         const enemies = [new Enemy(1000, 675, -1), new Enemy(1025, 530, 1)];
         setEnemySprite(imgs.enemy);
         const bullets = [];
         enemies.forEach(enemy => bullets.push(enemy.getBullet()));
-        const collider = new Collider("collision1-1.png", imgs.bg, scoreboard, light, this, rocks);
+        const collider = new Collider("collision1-1.png", imgs.bg, scoreboard, light, this, rocks, bullets);
         this.playing = false;
         this.play = function (images, ctx, canvas) {
             const this_ = this;
@@ -39,10 +41,11 @@ export default class Game {
                 })
             }, 32);
             camera.focus(indie.pos, 1);
+            scoreboard.takeLive();
 
             function render() {
-                ctx.fillStyle = "green";
-                ctx.fillRect(0, 0, 640, 250);
+                ctx.fillStyle = "black";
+                ctx.fillRect(0, 0, 640, 260);
                 ctx.drawImage(images.bg, camera.pos.x, camera.pos.y, 320, 125, 0, 0, 640, 250);
                 indie.draw(ctx, camera);
                 rocks.forEach(rock => {
@@ -52,13 +55,13 @@ export default class Game {
                     enemy.draw(ctx, camera);
                 });
                 bullets.forEach(bullet => {
-                    bullet.draw(ctx,camera)
+                    bullet.draw(ctx, camera)
                 });
                 if (light.alpha > 0) {
                     ctx.fillStyle = "rgba(0,0,0," + light.alpha + ")";
                     ctx.fillRect(0, 0, 640, 250);
                 }
-                if (light.alpha > 0.85 || scoreboard.hp <= 0) {
+                if (light.alpha > 0.85 || scoreboard.hp <= 0 || scoreboard.lives <= 0) {
                     this_.end(false);
                 }
                 if (scoreboard.needsUpdate) {

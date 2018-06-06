@@ -21,7 +21,7 @@ export default class Enemy {
         return this.bullet
     }
     draw(ctx, camera) {
-        if (((this.pos.y - camera.pos.y) * 2) < 250) {            
+        if (((this.pos.y - camera.pos.y) * 2) < 200) {            
             sprite.draw("idle", ctx, (this.pos.x - camera.pos.x) * 2, (this.pos.y - camera.pos.y) * 2, this.dir == -1);
         }
     }

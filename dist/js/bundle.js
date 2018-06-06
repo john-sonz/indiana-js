@@ -111,24 +111,28 @@ var Bullet = function () {
         value: function update() {
             var _this = this;
 
-            if (Math.abs(this.startX - this.pos.x) > this.range || this.collided) {
-                this.pos.x = this.startX;
-                this.allowUpdate = false;
-                this.collided = false;
-                setTimeout(function () {
-                    _this.allowUpdate = true;
-                }, 2000);
-            } else this.pos.x += this.speed * this.dir;
+            if (this.allowUpdate) {
+                if (Math.abs(this.startX - this.pos.x) > this.range || this.collided) {
+                    this.pos.x = this.startX;
+                    this.allowUpdate = false;
+                    this.collided = false;
+                    setTimeout(function () {
+                        _this.allowUpdate = true;
+                    }, 2000);
+                } else this.pos.x += this.speed * this.dir;
+            }
         }
     }, {
         key: "draw",
         value: function draw(ctx, camera) {
-            if ((this.pos.y - camera.pos.y) * 2 < 250) {
-                ctx.beginPath();
-                ctx.fillStyle = "gold";
-                ctx.arc((this.pos.x - camera.pos.x) * 2, (this.pos.y - camera.pos.y) * 2, 3, 0, 2 * Math.PI);
-                ctx.closePath();
-                ctx.fill();
+            if (this.allowUpdate) {
+                if ((this.pos.y - camera.pos.y) * 2 < 250) {
+                    ctx.beginPath();
+                    ctx.fillStyle = "gold";
+                    ctx.arc((this.pos.x - camera.pos.x) * 2, (this.pos.y - camera.pos.y) * 2, 3, 0, 2 * Math.PI);
+                    ctx.closePath();
+                    ctx.fill();
+                }
             }
         }
     }]);
@@ -220,13 +224,15 @@ var map = void 0,
     sb = void 0,
     light = void 0,
     game = void 0,
-    rocks = void 0;
+    rocks = void 0,
+    bullets = void 0;
 
 var Collider = function () {
-    function Collider(imgsrc, m, s, l, g, r) {
+    function Collider(imgsrc, m, s, l, g, r, b) {
         _classCallCheck(this, Collider);
 
         rocks = r;
+        bullets = b;
         map = m;
         sb = s;
         light = l;
@@ -236,7 +242,6 @@ var Collider = function () {
         img.src = "images/" + imgsrc;
         this.collisionMap.width = img.width;
         this.collisionMap.height = img.height;
-        console.log(this.collisionMap.width, this.collisionMap.height);
         this.collisionMap.getContext("2d").drawImage(img, 0, 0, this.collisionMap.width, this.collisionMap.height);
         this.context = this.collisionMap.getContext("2d");
         this.flags = {
@@ -276,7 +281,17 @@ var Collider = function () {
                     }
                 }
             });
+            bullets.forEach(function (bullet) {
+                if (!bullet.collided) {
+                    if (beetween(bullet.pos.y, positions.center.y - 20, positions.center.y + 20)) {
+                        if (beetween(bullet.pos.x, positions.center.x - 12, positions.center.x + 12)) {
+                            bullet.collided = true;
 
+                            sb.takeLive();
+                        }
+                    }
+                }
+            });
             if (this.flags.whip) {
                 if (beetween(positions.center.y, 675, 690)) {
                     if (beetween(positions.center.x, 450, 470)) {
@@ -295,7 +310,7 @@ var Collider = function () {
                         sb.addCross(map);
                         map.getContext("2d").fillStyle = "black";
                         map.getContext("2d").fillRect(880, 435, 20, 20);
-                        console.log(collected);
+
                         this.flags.cross = false;
                     }
                 }
@@ -346,7 +361,6 @@ var Collider = function () {
                             break;
                         }
                         if (color === "0 255 0 255") {
-                            console.log(this.flags.cross);
                             if (!this.flags.cross) game.end(true);else {
                                 vert = true;
                             }
@@ -401,7 +415,6 @@ var Collider = function () {
                             break;
                         }
                         if (color === "0 255 0 255") {
-                            console.log(this.flags.cross);
                             if (!this.flags.cross) game.end(true);else {
                                 hori = true;
                             }
@@ -500,7 +513,7 @@ var Enemy = function () {
     }, {
         key: "draw",
         value: function draw(ctx, camera) {
-            if ((this.pos.y - camera.pos.y) * 2 < 250) {
+            if ((this.pos.y - camera.pos.y) * 2 < 200) {
                 sprite.draw("idle", ctx, (this.pos.x - camera.pos.x) * 2, (this.pos.y - camera.pos.y) * 2, this.dir == -1);
             }
         }
@@ -563,12 +576,13 @@ var Game = function () {
     function Game(spriteSheet, imgs) {
         _classCallCheck(this, Game);
 
-        var indie = (0, _entities.createIndie)(spriteSheet);
+        var scoreboard = new _Scoreboard2.default(imgs.score);
+        scoreboard.setWhips(0);
+        var indie = (0, _entities.createIndie)(spriteSheet, scoreboard);
         window.indie = indie;
         var gravity = 0.3;
         var camera = new _Camera2.default();
-        var scoreboard = new _Scoreboard2.default(imgs.score);
-        scoreboard.setWhips(0);
+
         var light = new _Light2.default();
         var rocks = [new _Rock2.default(400, 660, 40, 1), new _Rock2.default(350, 440, 110)];
         var enemies = [new _Enemy2.default(1000, 675, -1), new _Enemy2.default(1025, 530, 1)];
@@ -577,7 +591,7 @@ var Game = function () {
         enemies.forEach(function (enemy) {
             return bullets.push(enemy.getBullet());
         });
-        var collider = new _Collider2.default("collision1-1.png", imgs.bg, scoreboard, light, this, rocks);
+        var collider = new _Collider2.default("collision1-1.png", imgs.bg, scoreboard, light, this, rocks, bullets);
         this.playing = false;
         this.play = function (images, ctx, canvas) {
             var this_ = this;
@@ -591,10 +605,11 @@ var Game = function () {
                 });
             }, 32);
             camera.focus(indie.pos, 1);
+            scoreboard.takeLive();
 
             function render() {
-                ctx.fillStyle = "green";
-                ctx.fillRect(0, 0, 640, 250);
+                ctx.fillStyle = "black";
+                ctx.fillRect(0, 0, 640, 260);
                 ctx.drawImage(images.bg, camera.pos.x, camera.pos.y, 320, 125, 0, 0, 640, 250);
                 indie.draw(ctx, camera);
                 rocks.forEach(function (rock) {
@@ -610,7 +625,7 @@ var Game = function () {
                     ctx.fillStyle = "rgba(0,0,0," + light.alpha + ")";
                     ctx.fillRect(0, 0, 640, 250);
                 }
-                if (light.alpha > 0.85 || scoreboard.hp <= 0) {
+                if (light.alpha > 0.85 || scoreboard.hp <= 0 || scoreboard.lives <= 0) {
                     this_.end(false);
                 }
                 if (scoreboard.needsUpdate) {
@@ -883,6 +898,7 @@ var Scoreboard = function () {
         this.needsUpdate = true;
         this.img = img;
         this.hp = 100;
+        this.lives = 6;
         this.whips = 0;
     }
 
@@ -897,7 +913,7 @@ var Scoreboard = function () {
             var sbctx = this.img.getContext("2d");
             sbctx.fillStyle = "black";
             sbctx.fillRect(135, 25, 20, 20);
-            sbctx.drawImage(map, torchpos.x, torchpos.y, 20, 20, 135, 25, 25, 25);
+            sbctx.drawImage(map, torchpos.x, torchpos.y, 20, 20, 133, 25, 25, 25);
             this.needsUpdate = true;
         }
     }, {
@@ -905,7 +921,7 @@ var Scoreboard = function () {
         value: function addCross(map) {
             var sbctx = this.img.getContext("2d");
             sbctx.fillStyle = "black";
-            sbctx.drawImage(map, 880, 435, 18, 18, 175, 25, 25, 25);
+            sbctx.drawImage(map, 880, 435, 18, 18, 173, 25, 25, 25);
             this.needsUpdate = true;
         }
     }, {
@@ -916,6 +932,19 @@ var Scoreboard = function () {
             var offset = this.hp / 100 * 44;
             ctx.fillStyle = "black";
             ctx.fillRect(56 + offset, 44, 44 - offset, 6);
+            this.needsUpdate = true;
+        }
+    }, {
+        key: "takeLive",
+        value: function takeLive() {
+            this.lives -= 1;
+            var ctx = this.img.getContext("2d");
+            ctx.fillStyle = "black";
+            ctx.fillRect(35, 43, 7, 7);
+            ctx.fillStyle = "green";
+            ctx.font = "8px Cousine, monospace";
+            ctx.fillText(this.lives.toString(), 37, 49, 7);
+            this.needsUpdate = true;
             this.needsUpdate = true;
         }
     }, {
@@ -1000,6 +1029,7 @@ var SpriteSet = function () {
         value: function draw(name, context, x, y) {
             var reverse = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : false;
 
+            console.log(name);
             var buffer = this.sprites.get(name);
 
             context.drawImage(buffer[reverse ? 1 : 0], x, y);
@@ -1042,9 +1072,10 @@ var _specs = __webpack_require__(/*! ./specs.js */ "./src/js/specs.js");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function createIndie(image) {
+function createIndie(image, sb) {
+    var scoreboard = sb;
     var indie = {};
-    indie.pos = new _math.Vec2(900, 400);
+    indie.pos = new _math.Vec2(50, 320);
     indie.vel = new _math.Vec2(0, 0);
     indie.size = new _math.Vec2(15, 25);
     indie.speed = 2.5;
@@ -1052,37 +1083,50 @@ function createIndie(image) {
     var sprites = new _SpriteSet2.default(image, 30, 50);
     sprites.define("idle", 0, 0, 30, 50);
     sprites.define("jump", 81, 68, 34, 50);
+    sprites.define("crouch", 80, 0, 35, 50);
     sprites.defineAnim(_specs.specs.run);
     sprites.defineAnim(_specs.specs.climb);
+    sprites.defineAnim(_specs.specs.attack);
     console.log(sprites);
     var input = new _Keyboard2.default();
     var ropeMode = false;
+    var crouching = false;
+    var attacking = false;
     input.listenTo(window);
 
     input.setListener("KeyW", function (e) {
         if (ropeMode) {
             return;
-        } else if (!indie.jumping && !(input.keyStates.get("KeyA") || input.keyStates.get("KeyD"))) {
-            indie.vel.y = -9.5;
+        } else if (!indie.jumping && !(input.keyStates.get("KeyA") || input.keyStates.get("KeyD")) && !crouching) {
+            indie.vel.y = -10.5;
             indie.jumping = true;
         }
     });
     input.setListener("KeyE", function (e) {
-        if (!indie.jumping) {
+        if (!indie.jumping && !crouching) {
             ropeMode = false;
-            indie.vel.y = -9.5;
+            indie.vel.y = -10.5;
             indie.vel.x = indie.speed;
             indie.jumping = true;
             indie.update();
         }
     });
     input.setListener("KeyQ", function (e) {
-        if (!indie.jumping) {
+        if (!indie.jumping && !crouching) {
             ropeMode = false;
-            indie.vel.y = -9.5;
+            indie.vel.y = -10.5;
             indie.vel.x = -indie.speed;
             indie.jumping = true;
             indie.update();
+        }
+    });
+    var attackingtimestamp = 0;
+    input.setListener("Space", function (e) {
+        if (!crouching && !indie.jumping && !ropeMode && !attacking && indie.whips > 0) {
+            attacking = true;
+            attackingtimestamp = Date.now();
+            indie.whips--;
+            sb.setWhips(indie.whips);
         }
     });
     var distance = 0;
@@ -1105,21 +1149,30 @@ function createIndie(image) {
 
         this.collisionPoints.center.set(this.pos.x + this.size.x / 2, this.pos.y + this.size.y / 2);
     };
+
+    var lastDir = 0;
     indie.update = function (collider) {
-        if (!ropeMode) {
-            if (!this.jumping) {
-                this.vel.x = (-input.keyStates.get("KeyA") + input.keyStates.get("KeyD")) * this.speed;
+        if (!attacking) {
+            if (!ropeMode) {
+                if (!this.jumping) {
+                    if (input.keyStates.get("KeyS")) {
+                        crouching = true;
+                    } else {
+                        this.vel.x = (-input.keyStates.get("KeyA") + input.keyStates.get("KeyD")) * this.speed;
+                        crouching = false;
+                    }
+                } else {
+                    this.vel.x *= resistance;
+                }
+                this.vel.y += gravity;
+                if (this.vel.y > 6) {
+                    this.vel.y = 2;
+                    this.jumping = true;
+                }
             } else {
-                this.vel.x *= resistance;
+                this.vel.x = 0;
+                this.vel.y = (-input.keyStates.get("KeyW") + input.keyStates.get("KeyS")) * 1.5;
             }
-            this.vel.y += gravity;
-            if (this.vel.y > 6) {
-                this.vel.y = 2;
-                this.jumping = true;
-            }
-        } else {
-            this.vel.x = 0;
-            this.vel.y = (-input.keyStates.get("KeyW") + input.keyStates.get("KeyS")) * 1.5;
         }
         this.pos.x += this.vel.x;
         this.pos.y += this.vel.y;
@@ -1131,7 +1184,7 @@ function createIndie(image) {
 
         if (collider) {
             this.updateCollisionPoints();
-            var collision = collider.check(this.collisionPoints);
+            var collision = collider.check(this.collisionPoints, attacking);
             if (collision.rope) {
                 ropeMode = true;
                 this.jumping = false;
@@ -1150,21 +1203,30 @@ function createIndie(image) {
         }
     };
 
-    var lastDir = 0;
     var ropeDistance = 0;
     indie.resolveFrame = function (len) {
+        if (attacking) {
+            if (Date.now() - attackingtimestamp < 240) {
+                var n = Math.floor((Date.now() - attackingtimestamp) / 60);
+                console.log("attack" + n);
+                return "attack" + n;
+            } else attacking = false;
+        }
+        if (crouching) {
+            return "crouch";
+        }
         if (ropeMode) {
             if (this.vel.y !== 0) {
-                var n = Math.floor(distance / (len * 2) % _specs.specs.climb.frames.length);
-                distance += 1.5;
-                return "climb" + n;
+                var _n = Math.floor(ropeDistance / (len * 2) % _specs.specs.climb.frames.length);
+                ropeDistance += 1.5;
+                return "climb" + _n;
             }
             return "climb0";
         }
         if (this.jumping) return "jump";
         if (this.vel.x !== 0) {
-            var _n = Math.floor(distance / len % _specs.specs.run.frames.length);
-            return "run" + _n;
+            var _n2 = Math.floor(distance / len % _specs.specs.run.frames.length);
+            return "run" + _n2;
         }
         return "idle";
     };
@@ -1178,7 +1240,12 @@ function createIndie(image) {
             y: parseInt(this.vel.y)
         });
         camera.check();
-        sprites.draw(this.resolveFrame(5), ctx, (this.pos.x - camera.pos.x) * 2, (this.pos.y - camera.pos.y) * 2, xDir == -1);
+        var name = this.resolveFrame(5);
+        if (name.startsWith("atta")) {
+            sprites.draw(name, ctx, (this.pos.x - camera.pos.x) * 2, (this.pos.y - 5 - camera.pos.y) * 2, xDir == -1);
+        } else {
+            sprites.draw(name, ctx, (this.pos.x - camera.pos.x) * 2, (this.pos.y - camera.pos.y) * 2, xDir == -1);
+        }
         if (distance > 10000) distance = 0;
     };
     return indie;
@@ -1450,6 +1517,38 @@ var specs = exports.specs = {
             },
             "width": 20,
             "height": 50
+        }]
+    },
+    attack: {
+        "name": "attack",
+        "frames": [{
+            "pos": {
+                "x": 45,
+                "y": 123
+            },
+            "width": 40,
+            "height": 60
+        }, {
+            "pos": {
+                "x": 85,
+                "y": 123
+            },
+            "width": 45,
+            "height": 60
+        }, {
+            "pos": {
+                "x": 135,
+                "y": 123
+            },
+            "width": 66,
+            "height": 60
+        }, {
+            "pos": {
+                "x": 201,
+                "y": 123
+            },
+            "width": 79,
+            "height": 60
         }]
     }
 };

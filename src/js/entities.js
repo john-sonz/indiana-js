@@ -7,48 +7,63 @@ import {
     specs
 } from "./specs.js";
 
-export function createIndie(image) {
+export function createIndie(image, sb) {
+    let scoreboard = sb;
     const indie = {};
-    indie.pos = new Vec2(900, 400);
+    indie.pos = new Vec2(50, 320);
     indie.vel = new Vec2(0, 0);
     indie.size = new Vec2(15, 25);
-    indie.speed = 2.5;    
+    indie.speed = 2.5;
     indie.whips = 0;
     const sprites = new SpriteSet(image, 30, 50);
     sprites.define("idle", 0, 0, 30, 50);
     sprites.define("jump", 81, 68, 34, 50);
+    sprites.define("crouch", 80, 0, 35, 50);
     sprites.defineAnim(specs.run);
     sprites.defineAnim(specs.climb);
+    sprites.defineAnim(specs.attack);
     console.log(sprites);
     const input = new Keyboard();
     let ropeMode = false;
+    let crouching = false;
+    let attacking = false;
     input.listenTo(window);
 
     input.setListener("KeyW", e => {
         if (ropeMode) {
             return;
-        } else if (!indie.jumping && !(input.keyStates.get("KeyA") || input.keyStates.get("KeyD"))) {
-            indie.vel.y = -9.5;
+        } else if (!indie.jumping && !(input.keyStates.get("KeyA") || input.keyStates.get("KeyD")) && !crouching) {
+            indie.vel.y = -10.5;
             indie.jumping = true;
         }
 
     });
     input.setListener("KeyE", e => {
-        if (!indie.jumping) {
+        if (!indie.jumping && !crouching) {
             ropeMode = false;
-            indie.vel.y = -9.5;
+            indie.vel.y = -10.5;
             indie.vel.x = indie.speed;
             indie.jumping = true;
             indie.update()
         }
     });
     input.setListener("KeyQ", e => {
-        if (!indie.jumping) {
+        if (!indie.jumping && !crouching) {
             ropeMode = false;
-            indie.vel.y = -9.5;
+            indie.vel.y = -10.5;
             indie.vel.x = -indie.speed;
             indie.jumping = true;
             indie.update()
+        }
+    });
+    let attackingtimestamp = 0;
+    input.setListener("Space", e => {
+        if (!crouching && !indie.jumping && !ropeMode && !attacking && indie.whips > 0) {
+            attacking = true;
+            attackingtimestamp = Date.now();
+            indie.whips--;
+            sb.setWhips(indie.whips)
+
         }
     });
     let distance = 0;
@@ -81,23 +96,33 @@ export function createIndie(image) {
 
         this.collisionPoints.center.set(this.pos.x + this.size.x / 2, this.pos.y + this.size.y / 2);
     }
+
+    let lastDir = 0;
     indie.update = function (collider) {
-        if (!ropeMode) {
-            if (!this.jumping) {
-                this.vel.x = (-input.keyStates.get("KeyA") + input.keyStates.get("KeyD")) * this.speed;
+        if (!attacking) {
+            if (!ropeMode) {
+                if (!this.jumping) {
+                    if (input.keyStates.get("KeyS")) {
+                        crouching = true;
+
+                    } else {
+                        this.vel.x = (-input.keyStates.get("KeyA") + input.keyStates.get("KeyD")) * this.speed;
+                        crouching = false;
+                    }
+                } else {
+                    this.vel.x *= resistance;
+                }
+                this.vel.y += gravity;
+                if (this.vel.y > 6) {
+                    this.vel.y = 2;
+                    this.jumping = true;
+                }
+
             } else {
-                this.vel.x *= resistance;
-            }
-            this.vel.y += gravity;
-            if (this.vel.y > 6) {
-                this.vel.y = 2;
-                this.jumping = true;
-            }
+                this.vel.x = 0;
+                this.vel.y = (-input.keyStates.get("KeyW") + input.keyStates.get("KeyS")) * 1.5;
 
-        } else {
-            this.vel.x = 0;
-            this.vel.y = (-input.keyStates.get("KeyW") + input.keyStates.get("KeyS")) * 1.5;
-
+            }
         }
         this.pos.x += this.vel.x;
         this.pos.y += this.vel.y;
@@ -109,7 +134,7 @@ export function createIndie(image) {
 
         if (collider) {
             this.updateCollisionPoints();
-            const collision = collider.check(this.collisionPoints);
+            const collision = collider.check(this.collisionPoints, attacking);
             if (collision.rope) {
                 ropeMode = true;
                 this.jumping = false;
@@ -128,13 +153,23 @@ export function createIndie(image) {
         }
     }
 
-    let lastDir = 0;
+
     let ropeDistance = 0;
     indie.resolveFrame = function (len) {
+        if (attacking) {
+            if (Date.now() - attackingtimestamp < 240) {
+                let n = Math.floor((Date.now() - attackingtimestamp) / 60);
+                console.log("attack" + n)
+                return "attack" + n;
+            } else attacking = false;
+        }
+        if (crouching) {
+            return "crouch";
+        }
         if (ropeMode) {
             if (this.vel.y !== 0) {
-                let n = Math.floor((distance / (len * 2)) % specs.climb.frames.length);
-                distance += 1.5;
+                let n = Math.floor((ropeDistance / (len * 2)) % specs.climb.frames.length);
+                ropeDistance += 1.5;
                 return "climb" + n;
             }
             return "climb0";
@@ -157,7 +192,12 @@ export function createIndie(image) {
             y: parseInt(this.vel.y)
         });
         camera.check();
-        sprites.draw(this.resolveFrame(5), ctx, (this.pos.x - camera.pos.x) * 2, (this.pos.y - camera.pos.y) * 2, xDir == -1);
+        const name = this.resolveFrame(5);
+        if(name.startsWith("atta")){
+            sprites.draw(name, ctx, (this.pos.x - camera.pos.x) * 2, (this.pos.y - 5 - camera.pos.y) * 2, xDir == -1);
+        }else{
+            sprites.draw(name, ctx, (this.pos.x - camera.pos.x) * 2, (this.pos.y - camera.pos.y) * 2, xDir == -1);
+        }
         if (distance > 10000) distance = 0;
     }
     return indie;

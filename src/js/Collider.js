@@ -1,10 +1,11 @@
 function beetween(val, start, end) {
     return (val > start && val < end);
 }
-let map, sb, light, game, rocks;
+let map, sb, light, game, rocks, bullets;
 export default class Collider {
-    constructor(imgsrc, m, s, l, g, r) {
+    constructor(imgsrc, m, s, l, g, r,b) {
         rocks = r;
+        bullets = b;
         map = m;
         sb = s;
         light = l;
@@ -13,8 +14,7 @@ export default class Collider {
         const img = new Image();
         img.src = "images/" + imgsrc;
         this.collisionMap.width = img.width;
-        this.collisionMap.height = img.height;
-        console.log(this.collisionMap.width, this.collisionMap.height);
+        this.collisionMap.height = img.height;        
         this.collisionMap.getContext("2d").drawImage(
             img,
             0, 0,
@@ -46,7 +46,7 @@ export default class Collider {
         let collected = false;
 
         rocks.forEach(rock => {
-            if (!rock.collided) {                
+            if (!rock.collided) {
                 if (beetween(rock.pos.x, positions.center.x - 12, positions.center.x + 12)) {
                     if (beetween(rock.pos.y, positions.center.y - 20, positions.center.y + 20)) {
                         rock.collided = true;
@@ -55,7 +55,17 @@ export default class Collider {
                 }
             }
         });
-
+        bullets.forEach(bullet => {
+            if (!bullet.collided) {
+                if (beetween(bullet.pos.y, positions.center.y - 20, positions.center.y + 20)) {
+                    if (beetween(bullet.pos.x, positions.center.x - 12, positions.center.x + 12)) {
+                        bullet.collided = true;
+                                                
+                        sb.takeLive();
+                    }
+                }
+            }
+        });
         if (this.flags.whip) {
             if (beetween(positions.center.y, 675, 690)) {
                 if (beetween(positions.center.x, 450, 470)) {
@@ -74,7 +84,7 @@ export default class Collider {
                     sb.addCross(map)
                     map.getContext("2d").fillStyle = "black";
                     map.getContext("2d").fillRect(880, 435, 20, 20)
-                    console.log(collected);
+                    
                     this.flags.cross = false;
 
                 }
@@ -120,8 +130,7 @@ export default class Collider {
                     game.end(false);
                     break;
                 }
-                if (color === "0 255 0 255") {
-                    console.log(this.flags.cross);
+                if (color === "0 255 0 255") {                    
                     if (!this.flags.cross) game.end(true);
                     else {
                         vert = true;
@@ -156,8 +165,7 @@ export default class Collider {
                     game.end(false);
                     break;
                 }
-                if (color === "0 255 0 255") {
-                    console.log(this.flags.cross);
+                if (color === "0 255 0 255") {                    
                     if (!this.flags.cross) game.end(true);
                     else {
                         hori = true;

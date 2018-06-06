@@ -76,5 +76,37 @@ export const specs = {
             "width": 20,
             "height": 50
         }]
+    },
+    attack: {
+        "name": "attack",
+        "frames": [{
+            "pos": {
+                "x": 45,
+                "y": 123
+            },
+            "width": 40,
+            "height": 60
+        }, {
+            "pos": {
+                "x": 85,
+                "y": 123
+            },
+            "width": 45,
+            "height": 60
+        }, {
+            "pos": {
+                "x": 135,
+                "y": 123
+            },
+            "width": 66,
+            "height": 60
+        }, {
+            "pos": {
+                "x": 201,
+                "y": 123
+            },
+            "width": 79,
+            "height": 60
+        }, ]
     }
 }

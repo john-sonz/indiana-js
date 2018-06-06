@@ -3,6 +3,7 @@ export default class Scoreboard {
         this.needsUpdate = true;
         this.img = img;
         this.hp = 100;
+        this.lives = 6;
         this.whips = 0;
     }
     draw(ctx) {
@@ -12,13 +13,13 @@ export default class Scoreboard {
         let sbctx = this.img.getContext("2d");
         sbctx.fillStyle = "black";
         sbctx.fillRect(135, 25, 20, 20);
-        sbctx.drawImage(map, torchpos.x, torchpos.y, 20, 20, 135, 25, 25, 25)
+        sbctx.drawImage(map, torchpos.x, torchpos.y, 20, 20, 133, 25, 25, 25)
         this.needsUpdate = true;
     }
     addCross(map) {
         let sbctx = this.img.getContext("2d");
         sbctx.fillStyle = "black";
-        sbctx.drawImage(map, 880, 435, 18, 18, 175, 25, 25, 25);
+        sbctx.drawImage(map, 880, 435, 18, 18, 173, 25, 25, 25);
         this.needsUpdate = true;
     }
     takeHp() {
@@ -27,6 +28,17 @@ export default class Scoreboard {
         const offset = (this.hp / 100) * 44;
         ctx.fillStyle = "black";
         ctx.fillRect(56 + offset, 44, 44 - offset, 6)
+        this.needsUpdate = true;
+    }
+    takeLive() {
+        this.lives -= 1;
+        const ctx = this.img.getContext("2d");
+        ctx.fillStyle = "black";
+        ctx.fillRect(35, 43, 7, 7);
+        ctx.fillStyle = "green";
+        ctx.font = "8px Cousine, monospace";
+        ctx.fillText(this.lives.toString(), 37, 49, 7);
+        this.needsUpdate = true;
         this.needsUpdate = true;
     }
     setWhips(n) {
