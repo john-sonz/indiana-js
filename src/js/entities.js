@@ -1,4 +1,3 @@
-import Entity from "./Entity";
 import SpriteSet from "./SpriteSet.js"
 import Keyboard from "./Keyboard.js";
 import {
@@ -9,10 +8,11 @@ import {
 } from "./specs.js";
 
 export function createIndie(image) {
-    const indie = new Entity();
-    indie.pos.set(50, 320);
-    indie.speed = 2.5;
+    const indie = {};
+    indie.pos = new Vec2(900, 400);
+    indie.vel = new Vec2(0, 0);
     indie.size = new Vec2(15, 25);
+    indie.speed = 2.5;    
     indie.whips = 0;
     const sprites = new SpriteSet(image, 30, 50);
     sprites.define("idle", 0, 0, 30, 50);

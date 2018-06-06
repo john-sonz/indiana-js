@@ -8,7 +8,7 @@ import SpriteSet from "./SpriteSet.js";
 
 const map = document.createElement("canvas");
 const scoreboard = document.createElement("canvas");
-const IMAGES = ["logo.png", "mapa.png", "sprites.png", "scoreboard.jpg", "collision1-1.png", "rock.png"];
+const IMAGES = ["logo.png", "mapa.png", "sprites.png", "scoreboard.jpg", "collision1-1.png", "rock.png", "enemy.png"];
 
 document.addEventListener("DOMContentLoaded", function () {
     const canvas = document.getElementById("screen");
@@ -19,7 +19,7 @@ document.addEventListener("DOMContentLoaded", function () {
     IMAGES.forEach(url => {
         imgs.push(loadImage(url));
     });
-    Promise.all(imgs).then(([logo, m, spriteSheet, scbrd, coll, rock]) => {
+    Promise.all(imgs).then(([logo, m, spriteSheet, scbrd, coll, rock, enemy]) => {
         map.width = 2115;
         map.height = 709;
         map.getContext("2d").drawImage(m, 0, 0, 2115, 709);
@@ -54,7 +54,9 @@ document.addEventListener("DOMContentLoaded", function () {
         const gameImgs = {
             bg: map,
             score: scoreboard,
-            rock : rock
+            rock: rock,
+            enemy: enemy
+
         }
         const game = new Game(spriteSheet, gameImgs);
 

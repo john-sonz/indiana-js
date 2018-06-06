@@ -71,6 +71,75 @@
 /************************************************************************/
 /******/ ({
 
+/***/ "./src/js/Bullet.js":
+/*!**************************!*\
+  !*** ./src/js/Bullet.js ***!
+  \**************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _math = __webpack_require__(/*! ./math */ "./src/js/math.js");
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Bullet = function () {
+    function Bullet(x, y, dir) {
+        var speed = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 2;
+
+        _classCallCheck(this, Bullet);
+
+        this.startX = x;
+        this.pos = new _math.Vec2(x, y);
+        this.range = 150;
+        this.dir = dir;
+        this.speed = speed;
+        this.collided = false;
+        this.allowUpdate = true;
+    }
+
+    _createClass(Bullet, [{
+        key: "update",
+        value: function update() {
+            var _this = this;
+
+            if (Math.abs(this.startX - this.pos.x) > this.range || this.collided) {
+                this.pos.x = this.startX;
+                this.allowUpdate = false;
+                this.collided = false;
+                setTimeout(function () {
+                    _this.allowUpdate = true;
+                }, 2000);
+            } else this.pos.x += this.speed * this.dir;
+        }
+    }, {
+        key: "draw",
+        value: function draw(ctx, camera) {
+            if ((this.pos.y - camera.pos.y) * 2 < 250) {
+                ctx.beginPath();
+                ctx.fillStyle = "gold";
+                ctx.arc((this.pos.x - camera.pos.x) * 2, (this.pos.y - camera.pos.y) * 2, 3, 0, 2 * Math.PI);
+                ctx.closePath();
+                ctx.fill();
+            }
+        }
+    }]);
+
+    return Bullet;
+}();
+
+exports.default = Bullet;
+
+/***/ }),
+
 /***/ "./src/js/Camera.js":
 /*!**************************!*\
   !*** ./src/js/Camera.js ***!
@@ -371,10 +440,10 @@ exports.default = Collider;
 
 /***/ }),
 
-/***/ "./src/js/Entity.js":
-/*!**************************!*\
-  !*** ./src/js/Entity.js ***!
-  \**************************/
+/***/ "./src/js/Enemy.js":
+/*!*************************!*\
+  !*** ./src/js/Enemy.js ***!
+  \*************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -385,18 +454,62 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+exports.setEnemySprite = setEnemySprite;
+
 var _math = __webpack_require__(/*! ./math */ "./src/js/math.js");
+
+var _SpriteSet = __webpack_require__(/*! ./SpriteSet */ "./src/js/SpriteSet.js");
+
+var _SpriteSet2 = _interopRequireDefault(_SpriteSet);
+
+var _Bullet = __webpack_require__(/*! ./Bullet */ "./src/js/Bullet.js");
+
+var _Bullet2 = _interopRequireDefault(_Bullet);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var Entity = function Entity() {
-    _classCallCheck(this, Entity);
+var sprite = void 0;
+function setEnemySprite(img) {
+    sprite = new _SpriteSet2.default(img, 30, 50);
+    sprite.define("idle", 0, 0, 30, 50);
+}
 
-    this.pos = new _math.Vec2(0, 0);
-    this.vel = new _math.Vec2(0, 0);
-};
+var Enemy = function () {
+    function Enemy() {
+        var x = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
+        var y = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
+        var shootDir = arguments[2];
 
-exports.default = Entity;
+        _classCallCheck(this, Enemy);
+
+        this.pos = new _math.Vec2(x, y);
+        this.size = new _math.Vec2(30, 50);
+        this.dir = shootDir;
+        this.bullet = new _Bullet2.default(x + (shootDir == -1 ? 5 : 10), y + 10, shootDir, 2);
+    }
+
+    _createClass(Enemy, [{
+        key: "getBullet",
+        value: function getBullet() {
+            return this.bullet;
+        }
+    }, {
+        key: "draw",
+        value: function draw(ctx, camera) {
+            if ((this.pos.y - camera.pos.y) * 2 < 250) {
+                sprite.draw("idle", ctx, (this.pos.x - camera.pos.x) * 2, (this.pos.y - camera.pos.y) * 2, this.dir == -1);
+            }
+        }
+    }]);
+
+    return Enemy;
+}();
+
+exports.default = Enemy;
 
 /***/ }),
 
@@ -434,9 +547,13 @@ var _Scoreboard = __webpack_require__(/*! ./Scoreboard.js */ "./src/js/Scoreboar
 
 var _Scoreboard2 = _interopRequireDefault(_Scoreboard);
 
-var _Rocks = __webpack_require__(/*! ./Rocks.js */ "./src/js/Rocks.js");
+var _Rock = __webpack_require__(/*! ./Rock.js */ "./src/js/Rock.js");
 
-var _Rocks2 = _interopRequireDefault(_Rocks);
+var _Rock2 = _interopRequireDefault(_Rock);
+
+var _Enemy = __webpack_require__(/*! ./Enemy.js */ "./src/js/Enemy.js");
+
+var _Enemy2 = _interopRequireDefault(_Enemy);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -450,11 +567,16 @@ var Game = function () {
         window.indie = indie;
         var gravity = 0.3;
         var camera = new _Camera2.default();
-
         var scoreboard = new _Scoreboard2.default(imgs.score);
         scoreboard.setWhips(0);
         var light = new _Light2.default();
-        var rocks = [new _Rocks2.default(400, 660, 40, 1), new _Rocks2.default(350, 440, 110)];
+        var rocks = [new _Rock2.default(400, 660, 40, 1), new _Rock2.default(350, 440, 110)];
+        var enemies = [new _Enemy2.default(1000, 675, -1), new _Enemy2.default(1025, 530, 1)];
+        (0, _Enemy.setEnemySprite)(imgs.enemy);
+        var bullets = [];
+        enemies.forEach(function (enemy) {
+            return bullets.push(enemy.getBullet());
+        });
         var collider = new _Collider2.default("collision1-1.png", imgs.bg, scoreboard, light, this, rocks);
         this.playing = false;
         this.play = function (images, ctx, canvas) {
@@ -464,8 +586,8 @@ var Game = function () {
             ctx.drawImage(images.score, 10, 260, 620, 130);
             this_.ctx = ctx;
             setInterval(function () {
-                rocks.forEach(function (rock) {
-                    rock.update();
+                [].concat(rocks, bullets).forEach(function (el) {
+                    el.update();
                 });
             }, 32);
             camera.focus(indie.pos, 1);
@@ -478,7 +600,12 @@ var Game = function () {
                 rocks.forEach(function (rock) {
                     rock.draw(ctx, imgs.rock, camera);
                 });
-
+                enemies.forEach(function (enemy) {
+                    enemy.draw(ctx, camera);
+                });
+                bullets.forEach(function (bullet) {
+                    bullet.draw(ctx, camera);
+                });
                 if (light.alpha > 0) {
                     ctx.fillStyle = "rgba(0,0,0," + light.alpha + ")";
                     ctx.fillRect(0, 0, 640, 250);
@@ -665,10 +792,10 @@ exports.default = Light;
 
 /***/ }),
 
-/***/ "./src/js/Rocks.js":
-/*!*************************!*\
-  !*** ./src/js/Rocks.js ***!
-  \*************************/
+/***/ "./src/js/Rock.js":
+/*!************************!*\
+  !*** ./src/js/Rock.js ***!
+  \************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -874,6 +1001,7 @@ var SpriteSet = function () {
             var reverse = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : false;
 
             var buffer = this.sprites.get(name);
+
             context.drawImage(buffer[reverse ? 1 : 0], x, y);
         }
     }]);
@@ -900,10 +1028,6 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.createIndie = createIndie;
 
-var _Entity = __webpack_require__(/*! ./Entity */ "./src/js/Entity.js");
-
-var _Entity2 = _interopRequireDefault(_Entity);
-
 var _SpriteSet = __webpack_require__(/*! ./SpriteSet.js */ "./src/js/SpriteSet.js");
 
 var _SpriteSet2 = _interopRequireDefault(_SpriteSet);
@@ -919,10 +1043,11 @@ var _specs = __webpack_require__(/*! ./specs.js */ "./src/js/specs.js");
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function createIndie(image) {
-    var indie = new _Entity2.default();
-    indie.pos.set(50, 320);
-    indie.speed = 2.5;
+    var indie = {};
+    indie.pos = new _math.Vec2(900, 400);
+    indie.vel = new _math.Vec2(0, 0);
     indie.size = new _math.Vec2(15, 25);
+    indie.speed = 2.5;
     indie.whips = 0;
     var sprites = new _SpriteSet2.default(image, 30, 50);
     sprites.define("idle", 0, 0, 30, 50);
@@ -1113,7 +1238,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 var map = document.createElement("canvas");
 var scoreboard = document.createElement("canvas");
-var IMAGES = ["logo.png", "mapa.png", "sprites.png", "scoreboard.jpg", "collision1-1.png", "rock.png"];
+var IMAGES = ["logo.png", "mapa.png", "sprites.png", "scoreboard.jpg", "collision1-1.png", "rock.png", "enemy.png"];
 
 document.addEventListener("DOMContentLoaded", function () {
     var canvas = document.getElementById("screen");
@@ -1125,13 +1250,14 @@ document.addEventListener("DOMContentLoaded", function () {
         imgs.push((0, _loaders.loadImage)(url));
     });
     Promise.all(imgs).then(function (_ref) {
-        var _ref2 = _slicedToArray(_ref, 6),
+        var _ref2 = _slicedToArray(_ref, 7),
             logo = _ref2[0],
             m = _ref2[1],
             spriteSheet = _ref2[2],
             scbrd = _ref2[3],
             coll = _ref2[4],
-            rock = _ref2[5];
+            rock = _ref2[5],
+            enemy = _ref2[6];
 
         map.width = 2115;
         map.height = 709;
@@ -1168,7 +1294,9 @@ document.addEventListener("DOMContentLoaded", function () {
         var gameImgs = {
             bg: map,
             score: scoreboard,
-            rock: rock
+            rock: rock,
+            enemy: enemy
+
         };
         var game = new _Game2.default(spriteSheet, gameImgs);
 
