@@ -1,20 +1,21 @@
 function beetween(val, start, end) {
     return (val > start && val < end);
 }
-let map, sb, light, game, rocks, bullets;
+let map, sb, light, game, rocks, bullets, enemies;
 export default class Collider {
-    constructor(imgsrc, m, s, l, g, r,b) {
+    constructor(imgsrc, m, s, l, g, r, b, e) {
         rocks = r;
         bullets = b;
         map = m;
         sb = s;
         light = l;
         game = g;
+        enemies = e;
         this.collisionMap = document.createElement("canvas");
         const img = new Image();
         img.src = "images/" + imgsrc;
         this.collisionMap.width = img.width;
-        this.collisionMap.height = img.height;        
+        this.collisionMap.height = img.height;
         this.collisionMap.getContext("2d").drawImage(
             img,
             0, 0,
@@ -39,7 +40,7 @@ export default class Collider {
             }
         ]
     }
-    check(positions) {
+    check(positions, attacking) {
         let vert = false;
         let hori = false;
         let rope = false;
@@ -47,8 +48,8 @@ export default class Collider {
 
         rocks.forEach(rock => {
             if (!rock.collided) {
-                if (beetween(rock.pos.x, positions.center.x - 12, positions.center.x + 12)) {
-                    if (beetween(rock.pos.y, positions.center.y - 20, positions.center.y + 20)) {
+                if (beetween(rock.pos.x, positions.center.x - 5, positions.center.x + 5)) {
+                    if (beetween(rock.pos.y, positions.center.y - 12, positions.center.y + 12)) {
                         rock.collided = true;
                         sb.takeHp();
                     }
@@ -56,16 +57,29 @@ export default class Collider {
             }
         });
         bullets.forEach(bullet => {
-            if (!bullet.collided) {
+            if (!bullet.collided && bullet.active) {
                 if (beetween(bullet.pos.y, positions.center.y - 20, positions.center.y + 20)) {
                     if (beetween(bullet.pos.x, positions.center.x - 12, positions.center.x + 12)) {
                         bullet.collided = true;
-                                                
+
                         sb.takeLive();
                     }
                 }
             }
         });
+        if (attacking) {
+            enemies.forEach(enemy => {
+                if (!enemy.dead) {
+                    if (beetween(enemy.pos.x, positions.center.x - 70, positions.center.x + 70)) {
+                        console.log(enemy.pos, positions.center);
+                        if (Math.abs(positions.center.y - (enemy.pos.y)) < 70) {
+                            enemy.kill();
+                            sb.updateScore(300);
+                        }
+                    }
+                }
+            });
+        }
         if (this.flags.whip) {
             if (beetween(positions.center.y, 675, 690)) {
                 if (beetween(positions.center.x, 450, 470)) {
@@ -74,6 +88,7 @@ export default class Collider {
                     map.getContext("2d").fillRect(450, 675, 20, 20)
                     sb.setWhips(5);
                     this.flags.whip = false;
+                    sb.updateScore(200);
                 }
             }
         }
@@ -84,8 +99,8 @@ export default class Collider {
                     sb.addCross(map)
                     map.getContext("2d").fillStyle = "black";
                     map.getContext("2d").fillRect(880, 435, 20, 20)
-                    
                     this.flags.cross = false;
+                    sb.updateScore(500);
 
                 }
             }
@@ -100,6 +115,7 @@ export default class Collider {
                         map.getContext("2d").fillRect(this.torchpos[i].x, this.torchpos[i].y, 20, 20)
                         this.flags.torches[i] = false;
                         light.resetTimeout();
+                        sb.updateScore(100);
                     }
                 }
             }
@@ -127,11 +143,11 @@ export default class Collider {
                     break;
                 }
                 if (color === "255 0 0 255") {
-                    game.end(false);
+                    game.end(false, sb.score);
                     break;
                 }
-                if (color === "0 255 0 255") {                    
-                    if (!this.flags.cross) game.end(true);
+                if (color === "0 255 0 255") {
+                    if (!this.flags.cross) game.end(true, sb.score);
                     else {
                         vert = true;
                     }
@@ -162,11 +178,11 @@ export default class Collider {
                     break;
                 }
                 if (color === "255 0 0 255") {
-                    game.end(false);
+                    game.end(false, sb.score);
                     break;
                 }
-                if (color === "0 255 0 255") {                    
-                    if (!this.flags.cross) game.end(true);
+                if (color === "0 255 0 255") {
+                    if (!this.flags.cross) game.end(true, sb.score);
                     else {
                         hori = true;
                     }

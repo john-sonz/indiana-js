@@ -4,7 +4,7 @@ export default class Light {
         this.timeout = 0;
     }
     updateAlpha() {
-        this.alpha += 0.01;
+        this.alpha += 0.1;
         this.timeout = setTimeout(() => this.updateAlpha(), 10000);
     }
     resetAlpha() {

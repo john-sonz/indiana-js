@@ -5,6 +5,7 @@ export default class Scoreboard {
         this.hp = 100;
         this.lives = 6;
         this.whips = 0;
+        this.score = 0;
     }
     draw(ctx) {
         ctx.drawImage(this.img, 10, 260, 620, 130);
@@ -51,4 +52,20 @@ export default class Scoreboard {
         ctx.fillText(n.toString(), 114, 48, 6);
         this.needsUpdate = true;
     }
+    updateScore(n = 0) {
+        this.score += n;
+        let s = this.score.toString();
+        while (s.length < 6){
+            s = "0" + s;
+                }
+        
+        const ctx = this.img.getContext("2d");
+        ctx.fillStyle = "black";
+        ctx.fillRect(56, 36, 44, 7);
+        ctx.fillStyle = "white";
+        ctx.font = "9px Cousine, monospace";
+        ctx.fillText(s, 57, 43, 44);
+        this.needsUpdate = true;
+    }
+
 }

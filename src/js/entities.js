@@ -123,6 +123,13 @@ export function createIndie(image, sb) {
                 this.vel.y = (-input.keyStates.get("KeyW") + input.keyStates.get("KeyS")) * 1.5;
 
             }
+        } else {
+            this.vel.x = 0;
+            this.vel.y += gravity;
+            if (this.vel.y > 6) {
+                this.vel.y = 2;
+                this.jumping = true;
+            }
         }
         this.pos.x += this.vel.x;
         this.pos.y += this.vel.y;
@@ -158,8 +165,7 @@ export function createIndie(image, sb) {
     indie.resolveFrame = function (len) {
         if (attacking) {
             if (Date.now() - attackingtimestamp < 240) {
-                let n = Math.floor((Date.now() - attackingtimestamp) / 60);
-                console.log("attack" + n)
+                let n = Math.floor((Date.now() - attackingtimestamp) / 60);                
                 return "attack" + n;
             } else attacking = false;
         }
@@ -183,8 +189,7 @@ export function createIndie(image, sb) {
         return "idle";
     }
 
-    indie.draw = function (ctx, camera) {
-        //console.log(this.pos);
+    indie.draw = function (ctx, camera) {        
         const xDir = this.vel.x !== 0 ? parseInt(this.vel.x / Math.abs(this.vel.x)) : lastDir;
         lastDir = xDir;
         camera.focus(this.pos, {
@@ -193,9 +198,9 @@ export function createIndie(image, sb) {
         });
         camera.check();
         const name = this.resolveFrame(5);
-        if(name.startsWith("atta")){
+        if (name.startsWith("atta")) {
             sprites.draw(name, ctx, (this.pos.x - camera.pos.x) * 2, (this.pos.y - 5 - camera.pos.y) * 2, xDir == -1);
-        }else{
+        } else {
             sprites.draw(name, ctx, (this.pos.x - camera.pos.x) * 2, (this.pos.y - camera.pos.y) * 2, xDir == -1);
         }
         if (distance > 10000) distance = 0;

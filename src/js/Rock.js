@@ -10,6 +10,7 @@ export default class Rock {
         this.speed = speed;
         this.alllowUpdate = true;
         this.collided = false;
+        this.active = true;
     }
     update() {
         if (this.alllowUpdate) {

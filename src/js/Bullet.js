@@ -11,6 +11,7 @@ export default class Bullet {
         this.speed = speed;
         this.collided = false;
         this.allowUpdate = true;
+        this.active = true;
     }
     update() {
         if (this.allowUpdate) {
@@ -39,5 +40,5 @@ export default class Bullet {
                 ctx.fill()
             }
         }
-    }
+    }    
 }

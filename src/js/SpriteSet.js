@@ -33,10 +33,8 @@ export default class SpriteSet {
             this.define(spec.name + i, f.pos.x, f.pos.y, f.width, f.height);
         }
     }
-    draw(name, context, x, y, reverse = false) {       
-        console.log(name);
+    draw(name, context, x, y, reverse = false) {               
         const buffer = this.sprites.get(name)
-
         context.drawImage(buffer[reverse ? 1 : 0], x, y);
     }
 }

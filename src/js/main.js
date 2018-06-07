@@ -50,6 +50,7 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         };
         setInterval(() => text = !text, 1000);
+        
         ts = requestAnimationFrame(startScreen);
         const gameImgs = {
             bg: map,
@@ -59,8 +60,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
         }
         const game = new Game(spriteSheet, gameImgs);
-
-
         window.addEventListener("keydown", e => {
             let start = false
             if (e.key == "Enter" && !start) {

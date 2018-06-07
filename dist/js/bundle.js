@@ -104,6 +104,7 @@ var Bullet = function () {
         this.speed = speed;
         this.collided = false;
         this.allowUpdate = true;
+        this.active = true;
     }
 
     _createClass(Bullet, [{
@@ -225,10 +226,11 @@ var map = void 0,
     light = void 0,
     game = void 0,
     rocks = void 0,
-    bullets = void 0;
+    bullets = void 0,
+    enemies = void 0;
 
 var Collider = function () {
-    function Collider(imgsrc, m, s, l, g, r, b) {
+    function Collider(imgsrc, m, s, l, g, r, b, e) {
         _classCallCheck(this, Collider);
 
         rocks = r;
@@ -237,6 +239,7 @@ var Collider = function () {
         sb = s;
         light = l;
         game = g;
+        enemies = e;
         this.collisionMap = document.createElement("canvas");
         var img = new Image();
         img.src = "images/" + imgsrc;
@@ -263,7 +266,7 @@ var Collider = function () {
 
     _createClass(Collider, [{
         key: "check",
-        value: function check(positions) {
+        value: function check(positions, attacking) {
             var _this = this;
 
             var vert = false;
@@ -273,8 +276,8 @@ var Collider = function () {
 
             rocks.forEach(function (rock) {
                 if (!rock.collided) {
-                    if (beetween(rock.pos.x, positions.center.x - 12, positions.center.x + 12)) {
-                        if (beetween(rock.pos.y, positions.center.y - 20, positions.center.y + 20)) {
+                    if (beetween(rock.pos.x, positions.center.x - 5, positions.center.x + 5)) {
+                        if (beetween(rock.pos.y, positions.center.y - 12, positions.center.y + 12)) {
                             rock.collided = true;
                             sb.takeHp();
                         }
@@ -282,7 +285,7 @@ var Collider = function () {
                 }
             });
             bullets.forEach(function (bullet) {
-                if (!bullet.collided) {
+                if (!bullet.collided && bullet.active) {
                     if (beetween(bullet.pos.y, positions.center.y - 20, positions.center.y + 20)) {
                         if (beetween(bullet.pos.x, positions.center.x - 12, positions.center.x + 12)) {
                             bullet.collided = true;
@@ -292,6 +295,19 @@ var Collider = function () {
                     }
                 }
             });
+            if (attacking) {
+                enemies.forEach(function (enemy) {
+                    if (!enemy.dead) {
+                        if (beetween(enemy.pos.x, positions.center.x - 70, positions.center.x + 70)) {
+                            console.log(enemy.pos, positions.center);
+                            if (Math.abs(positions.center.y - enemy.pos.y) < 70) {
+                                enemy.kill();
+                                sb.updateScore(300);
+                            }
+                        }
+                    }
+                });
+            }
             if (this.flags.whip) {
                 if (beetween(positions.center.y, 675, 690)) {
                     if (beetween(positions.center.x, 450, 470)) {
@@ -300,6 +316,7 @@ var Collider = function () {
                         map.getContext("2d").fillRect(450, 675, 20, 20);
                         sb.setWhips(5);
                         this.flags.whip = false;
+                        sb.updateScore(200);
                     }
                 }
             }
@@ -310,8 +327,8 @@ var Collider = function () {
                         sb.addCross(map);
                         map.getContext("2d").fillStyle = "black";
                         map.getContext("2d").fillRect(880, 435, 20, 20);
-
                         this.flags.cross = false;
+                        sb.updateScore(500);
                     }
                 }
             }
@@ -325,6 +342,7 @@ var Collider = function () {
                             map.getContext("2d").fillRect(_this.torchpos[i].x, _this.torchpos[i].y, 20, 20);
                             _this.flags.torches[i] = false;
                             light.resetTimeout();
+                            sb.updateScore(100);
                         }
                     }
                 }
@@ -357,11 +375,11 @@ var Collider = function () {
                             break;
                         }
                         if (color === "255 0 0 255") {
-                            game.end(false);
+                            game.end(false, sb.score);
                             break;
                         }
                         if (color === "0 255 0 255") {
-                            if (!this.flags.cross) game.end(true);else {
+                            if (!this.flags.cross) game.end(true, sb.score);else {
                                 vert = true;
                             }
                             break;
@@ -411,11 +429,11 @@ var Collider = function () {
                             break;
                         }
                         if (color === "255 0 0 255") {
-                            game.end(false);
+                            game.end(false, sb.score);
                             break;
                         }
                         if (color === "0 255 0 255") {
-                            if (!this.flags.cross) game.end(true);else {
+                            if (!this.flags.cross) game.end(true, sb.score);else {
                                 hori = true;
                             }
                             break;
@@ -502,6 +520,7 @@ var Enemy = function () {
         this.pos = new _math.Vec2(x, y);
         this.size = new _math.Vec2(30, 50);
         this.dir = shootDir;
+        this.dead = false;
         this.bullet = new _Bullet2.default(x + (shootDir == -1 ? 5 : 10), y + 10, shootDir, 2);
     }
 
@@ -516,6 +535,12 @@ var Enemy = function () {
             if ((this.pos.y - camera.pos.y) * 2 < 200) {
                 sprite.draw("idle", ctx, (this.pos.x - camera.pos.x) * 2, (this.pos.y - camera.pos.y) * 2, this.dir == -1);
             }
+        }
+    }, {
+        key: "kill",
+        value: function kill() {
+            this.dead = true;
+            this.bullet.active = false;
         }
     }]);
 
@@ -591,7 +616,7 @@ var Game = function () {
         enemies.forEach(function (enemy) {
             return bullets.push(enemy.getBullet());
         });
-        var collider = new _Collider2.default("collision1-1.png", imgs.bg, scoreboard, light, this, rocks, bullets);
+        var collider = new _Collider2.default("collision1-1.png", imgs.bg, scoreboard, light, this, rocks, bullets, enemies);
         this.playing = false;
         this.play = function (images, ctx, canvas) {
             var this_ = this;
@@ -601,11 +626,12 @@ var Game = function () {
             this_.ctx = ctx;
             setInterval(function () {
                 [].concat(rocks, bullets).forEach(function (el) {
-                    el.update();
+                    if (el.active) el.update();
                 });
             }, 32);
             camera.focus(indie.pos, 1);
             scoreboard.takeLive();
+            scoreboard.updateScore();
 
             function render() {
                 ctx.fillStyle = "black";
@@ -616,17 +642,17 @@ var Game = function () {
                     rock.draw(ctx, imgs.rock, camera);
                 });
                 enemies.forEach(function (enemy) {
-                    enemy.draw(ctx, camera);
+                    if (!enemy.dead) enemy.draw(ctx, camera);
                 });
                 bullets.forEach(function (bullet) {
-                    bullet.draw(ctx, camera);
+                    if (bullet.active) bullet.draw(ctx, camera);
                 });
                 if (light.alpha > 0) {
                     ctx.fillStyle = "rgba(0,0,0," + light.alpha + ")";
                     ctx.fillRect(0, 0, 640, 250);
                 }
                 if (light.alpha > 0.85 || scoreboard.hp <= 0 || scoreboard.lives <= 0) {
-                    this_.end(false);
+                    this_.end(false, scoreboard.score);
                 }
                 if (scoreboard.needsUpdate) {
                     scoreboard.draw(ctx);
@@ -655,16 +681,17 @@ var Game = function () {
         }
     }, {
         key: "end",
-        value: function end(win) {
+        value: function end(win, score) {
             this.playing = false;
             var ctx = this.ctx;
             var msg = win ? "CONGRATULATIONS! YOU WIN!" : "YOU LOST";
-
+            var s = "SCORE: " + score;
             function endScreen() {
                 ctx.fillStyle = "black";
                 ctx.fillRect(0, 0, 640, 400);
                 ctx.fillStyle = "#d0dc71";
                 ctx.fillText(msg, 640 / 2, 400 * 0.65);
+                ctx.fillText(s, 640 / 2, 400 * 0.80);
                 requestAnimationFrame(endScreen);
             }
             endScreen();
@@ -777,7 +804,7 @@ var Light = function () {
         value: function updateAlpha() {
             var _this = this;
 
-            this.alpha += 0.01;
+            this.alpha += 0.1;
             this.timeout = setTimeout(function () {
                 return _this.updateAlpha();
             }, 10000);
@@ -839,6 +866,7 @@ var Rock = function () {
         this.speed = speed;
         this.alllowUpdate = true;
         this.collided = false;
+        this.active = true;
     }
 
     _createClass(Rock, [{
@@ -900,6 +928,7 @@ var Scoreboard = function () {
         this.hp = 100;
         this.lives = 6;
         this.whips = 0;
+        this.score = 0;
     }
 
     _createClass(Scoreboard, [{
@@ -957,6 +986,25 @@ var Scoreboard = function () {
             ctx.fillStyle = "white";
             ctx.font = "13px Cousine, monospace";
             ctx.fillText(n.toString(), 114, 48, 6);
+            this.needsUpdate = true;
+        }
+    }, {
+        key: "updateScore",
+        value: function updateScore() {
+            var n = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
+
+            this.score += n;
+            var s = this.score.toString();
+            while (s.length < 6) {
+                s = "0" + s;
+            }
+
+            var ctx = this.img.getContext("2d");
+            ctx.fillStyle = "black";
+            ctx.fillRect(56, 36, 44, 7);
+            ctx.fillStyle = "white";
+            ctx.font = "9px Cousine, monospace";
+            ctx.fillText(s, 57, 43, 44);
             this.needsUpdate = true;
         }
     }]);
@@ -1029,9 +1077,7 @@ var SpriteSet = function () {
         value: function draw(name, context, x, y) {
             var reverse = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : false;
 
-            console.log(name);
             var buffer = this.sprites.get(name);
-
             context.drawImage(buffer[reverse ? 1 : 0], x, y);
         }
     }]);
@@ -1173,6 +1219,13 @@ function createIndie(image, sb) {
                 this.vel.x = 0;
                 this.vel.y = (-input.keyStates.get("KeyW") + input.keyStates.get("KeyS")) * 1.5;
             }
+        } else {
+            this.vel.x = 0;
+            this.vel.y += gravity;
+            if (this.vel.y > 6) {
+                this.vel.y = 2;
+                this.jumping = true;
+            }
         }
         this.pos.x += this.vel.x;
         this.pos.y += this.vel.y;
@@ -1208,7 +1261,6 @@ function createIndie(image, sb) {
         if (attacking) {
             if (Date.now() - attackingtimestamp < 240) {
                 var n = Math.floor((Date.now() - attackingtimestamp) / 60);
-                console.log("attack" + n);
                 return "attack" + n;
             } else attacking = false;
         }
@@ -1232,7 +1284,6 @@ function createIndie(image, sb) {
     };
 
     indie.draw = function (ctx, camera) {
-        //console.log(this.pos);
         var xDir = this.vel.x !== 0 ? parseInt(this.vel.x / Math.abs(this.vel.x)) : lastDir;
         lastDir = xDir;
         camera.focus(this.pos, {
@@ -1357,6 +1408,7 @@ document.addEventListener("DOMContentLoaded", function () {
         setInterval(function () {
             return text = !text;
         }, 1000);
+
         ts = requestAnimationFrame(startScreen);
         var gameImgs = {
             bg: map,
@@ -1366,7 +1418,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
         };
         var game = new _Game2.default(spriteSheet, gameImgs);
-
         window.addEventListener("keydown", function (e) {
             var start = false;
             if (e.key == "Enter" && !start) {

@@ -15,6 +15,7 @@ export default class Enemy {
         this.pos = new Vec2(x, y);
         this.size = new Vec2(30, 50);
         this.dir = shootDir;
+        this.dead = false;
         this.bullet = new Bullet(x + (shootDir == -1 ? 5 : 10), y + 10, shootDir, 2);
     }
     getBullet() {
@@ -24,5 +25,9 @@ export default class Enemy {
         if (((this.pos.y - camera.pos.y) * 2) < 200) {            
             sprite.draw("idle", ctx, (this.pos.x - camera.pos.x) * 2, (this.pos.y - camera.pos.y) * 2, this.dir == -1);
         }
+    }
+    kill(){
+        this.dead = true;
+        this.bullet.active = false;
     }
 }
